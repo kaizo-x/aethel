@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-cream: #FBF9F5;
+    --bg-cream-card: #FFFFFF;
+    --text-charcoal: #1A1918;
+    --text-muted: #575553;
+    --border-atelier: #E5DFD7;
+    --accent-forest: #1B3B36;
+    --accent-ochre: #C89047;
+  }
+
+  body {
+    background-color: var(--bg-cream);
+    color: var(--text-charcoal);
+    font-family: var(--font-jakarta), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    selection-background-color: #1B3B36;
+    selection-color: #FBF9F5;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F3EFEA;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #DDD5CA;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #C89047;
+  }
+}
+
+/* Custom Range Slider styling for editorial tactile feel */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  background: #EAE4DC;
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  background-color: #1B3B36;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  margin-top: -7px;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background-color: #C89047;
+}
+
+input[type="range"]:focus {
+  outline: none;
+}
+
+/* Print Stylesheet for high-end dossier printing */
+@media print {
+  body {
+    background-color: #FFFFFF !important;
+    color: #1A1918 !important;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  .print-card {
+    border: 1px solid #CCCCCC !important;
+    box-shadow: none !important;
+  }
+}
