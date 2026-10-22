@@ -17,9 +17,22 @@ import {
   Cake,
   Leaf,
   Briefcase,
+  RefreshCw,
+  Palette,
+  ShieldAlert,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { EventPlan, EventType, BudgetCategory, TimelinePhase, TimelineTask, Vendor, MoodboardItem } from '@/lib/types';
+import {
+  EventPlan,
+  EventType,
+  BudgetCategory,
+  TimelinePhase,
+  TimelineTask,
+  Vendor,
+  MoodboardItem,
+  GeneratedEventResponse,
+  RiskRadarItem,
+} from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 interface EventWizardModalProps {
@@ -47,6 +60,46 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
   const [allocationStrategy, setAllocationStrategy] = useState<'balanced' | 'venue_heavy' | 'decor_heavy' | 'civic'>(
     'balanced'
   );
+
+  // Gemini State
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [generatedAiData, setGeneratedAiData] = useState<GeneratedEventResponse | null>(null);
+
+  const handleGenerateWithGemini = async () => {
+    setIsAiGenerating(true);
+    try {
+      const constraints = constraintsText
+        .split('\n')
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0);
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Create a bespoke event architecture for a ${eventType} entitled "${title || 'Untitled'}" with vibe "${themeVibe || 'Earthy Modernism'}".`,
+          eventContext: {
+            title,
+            eventType,
+            totalBudget,
+            guestCount,
+            location,
+            date,
+            constraints,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedAiData(data);
+      }
+    } catch (err) {
+      console.warn('Gemini generation error in wizard:', err);
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -373,6 +426,39 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
       tasks,
       vendors,
       moodboard,
+      riskRadar: generatedAiData?.riskRadar
+        ? generatedAiData.riskRadar.map((r, i) => ({
+            id: `rr-gen-${Date.now()}-${i}`,
+            risk: r.risk,
+            severity: r.severity,
+            mitigation: r.mitigation,
+            resolved: false,
+          }))
+        : [
+            {
+              id: 'rr-w-gen-1',
+              risk: 'Local Sound & Noise Ordinance Compliance Window',
+              severity: 'High',
+              mitigation: 'Verify 10:00 PM decibel attenuation and schedule acoustic buffer.',
+              resolved: false,
+            },
+            {
+              id: 'rr-w-gen-2',
+              risk: 'Vendor Loading Choke Point & Arrival Sync',
+              severity: 'Medium',
+              mitigation: 'Stagger catering and floral load-in by 90 minutes.',
+              resolved: true,
+            },
+          ],
+      personalizedIdeas: generatedAiData?.personalizedIdeas || {
+        theme: themeVibe || 'Warm Earthy Modernism & Tactile Linen',
+        colorPalette: ['#1B3B36', '#C89047', '#EAE4DC', '#575553'],
+        decorHighlights: [
+          'Sculptural foam-free floral installations',
+          'Hand-poured beeswax pillar groupings',
+          'Belgian unbleached linen runners',
+        ],
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -656,6 +742,69 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
                 </p>
               </div>
 
+              {/* Gemini GenAI Trigger Box */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-forest/5 border border-forest/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-ochre flex-shrink-0" />
+                  <div>
+                    <span className="text-xs font-semibold text-charcoal-900 block">
+                      {generatedAiData ? 'Gemini GenAI Architecture Generated' : 'Synthesize with Google Gemini'}
+                    </span>
+                    <span className="text-[11px] text-charcoal-500 font-sans">
+                      Automatically generates risk radar, bespoke color palette & tailored timeline.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isAiGenerating}
+                  onClick={handleGenerateWithGemini}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded bg-forest hover:bg-forest-light text-cream-50 transition-colors shadow-atelier disabled:opacity-50 flex-shrink-0"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-ochre-light ${isAiGenerating ? 'animate-spin' : ''}`} />
+                  <span>{isAiGenerating ? 'Synthesizing...' : generatedAiData ? 'Re-Synthesize' : 'Generate with Gemini'}</span>
+                </button>
+              </div>
+
+              {/* Live Gemini Preview */}
+              {generatedAiData && (
+                <div className="p-4 rounded-lg bg-cream-50 border border-atelier-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-charcoal-700">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-700" />
+                      Gemini Risk Radar Preview ({generatedAiData.riskRadar.length} risks analyzed)
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {generatedAiData.riskRadar.slice(0, 2).map((r, i) => (
+                      <div key={i} className="text-xs bg-white p-2 rounded border border-atelier-border flex items-start justify-between gap-2">
+                        <span className="font-medium text-charcoal-900">{r.risk}</span>
+                        <span className="text-[10px] uppercase font-sans font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                          {r.severity}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {generatedAiData.personalizedIdeas?.colorPalette && (
+                    <div className="pt-2 border-t border-atelier-border/60 flex items-center gap-2">
+                      <Palette className="w-3.5 h-3.5 text-forest" />
+                      <span className="text-[11px] font-sans font-medium text-charcoal-600">Aesthetic Swatches:</span>
+                      <div className="flex items-center gap-1.5">
+                        {generatedAiData.personalizedIdeas.colorPalette.map((hex, i) => (
+                          <div
+                            key={i}
+                            className="w-5 h-5 rounded border border-charcoal-300"
+                            style={{ backgroundColor: hex }}
+                            title={hex}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="border border-atelier-border rounded-lg p-4 space-y-3">
                 <span className="text-[11px] uppercase tracking-wider font-sans font-semibold text-charcoal-500 block">
                   Generated Architecture Components:
@@ -671,7 +820,7 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-forest" />
-                    <span>Day-Of Minute-by-Minute Run</span>
+                    <span>Automated Risk Radar</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-forest" />

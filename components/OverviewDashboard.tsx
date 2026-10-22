@@ -15,21 +15,35 @@ import {
   Image as ImageIcon,
   Shield,
   Layers,
+  ShieldAlert,
+  Radio,
+  RefreshCw,
+  Check,
+  Palette,
+  Lightbulb,
 } from 'lucide-react';
-import { EventPlan, MoodboardItem } from '@/lib/types';
+import { EventPlan, MoodboardItem, RiskRadarItem, TimelineTask, PersonalizedIdeas } from '@/lib/types';
 import { formatCurrency, formatDate, calculateDaysRemaining } from '@/lib/utils';
 
 interface OverviewDashboardProps {
   event: EventPlan;
   onNavigateTab: (tab: 'budget' | 'timeline' | 'vendors') => void;
   onAddMoodboardItem?: (item: MoodboardItem) => void;
+  onUpdateRiskRadar?: (risks: RiskRadarItem[]) => void;
+  onAddTimelineTask?: (task: TimelineTask) => void;
+  onUpdatePersonalizedIdeas?: (ideas: PersonalizedIdeas) => void;
 }
 
 export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   event,
   onNavigateTab,
   onAddMoodboardItem,
+  onUpdateRiskRadar,
+  onAddTimelineTask,
+  onUpdatePersonalizedIdeas,
 }) => {
+  const [isScanningRadar, setIsScanningRadar] = useState(false);
+  const [radarEngineBadge, setRadarEngineBadge] = useState<string | null>(null);
   const [isAddingImage, setIsAddingImage] = useState(false);
   const [newImageTitle, setNewImageTitle] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -72,6 +86,70 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
     setNewImageUrl('');
     setIsAddingImage(false);
   };
+
+  const handleScanRiskRadar = async () => {
+    setIsScanningRadar(true);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Analyze logistical, noise curfew, transport, and weather risks for this ${event.eventType} event titled "${event.title}". Suggest mitigations and color palette.`,
+          eventContext: event,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.riskRadar && onUpdateRiskRadar) {
+          const formattedRisks: RiskRadarItem[] = data.riskRadar.map((r: any, idx: number) => ({
+            id: `rr-gen-${Date.now()}-${idx}`,
+            risk: r.risk,
+            severity: r.severity || 'Medium',
+            mitigation: r.mitigation,
+            resolved: false,
+          }));
+          onUpdateRiskRadar(formattedRisks);
+        }
+        if (data.personalizedIdeas && onUpdatePersonalizedIdeas) {
+          onUpdatePersonalizedIdeas(data.personalizedIdeas);
+        }
+        setRadarEngineBadge(data._engine || 'Gemini 2.5 Flash');
+      }
+    } catch (err) {
+      console.warn('Risk radar scan error:', err);
+    } finally {
+      setIsScanningRadar(false);
+    }
+  };
+
+  const handleToggleRiskResolved = (riskIndex: number) => {
+    if (!event.riskRadar || !onUpdateRiskRadar) return;
+    const updated = event.riskRadar.map((rr, idx) =>
+      idx === riskIndex ? { ...rr, resolved: !rr.resolved } : rr
+    );
+    onUpdateRiskRadar(updated);
+  };
+
+  const handleConvertRiskToTask = (riskItem: RiskRadarItem, riskIndex: number) => {
+    if (onAddTimelineTask) {
+      const newTask: TimelineTask = {
+        id: `task-mitigation-${Date.now()}`,
+        title: `Mitigate: ${riskItem.risk}`,
+        description: riskItem.mitigation,
+        phaseId: 't-1w',
+        category: 'Risk Mitigation',
+        completed: false,
+        priority: riskItem.severity === 'High' ? 'critical' : 'high',
+        assignedTo: 'Lead Coordinator',
+      };
+      onAddTimelineTask(newTask);
+    }
+    handleToggleRiskResolved(riskIndex);
+  };
+
+  const activeRisks = event.riskRadar || [];
+  const highRiskCount = activeRisks.filter((r) => r.severity === 'High').length;
+  const resolvedRiskCount = activeRisks.filter((r) => r.resolved).length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -236,6 +314,163 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           </div>
         </div>
 
+      </div>
+
+      {/* Automated Event Risk Radar (Gemini Powered) */}
+      <div className="bg-white border border-atelier-border rounded-lg p-6 sm:p-8 shadow-atelier space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-atelier-border pb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-widest font-sans font-semibold text-rose-800 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-rose-700" />
+                Automated Event Risk Radar
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-700" />
+              {radarEngineBadge && (
+                <span className="px-2 py-0.5 text-[10px] font-sans font-semibold bg-forest/10 text-forest rounded-full">
+                  {radarEngineBadge}
+                </span>
+              )}
+            </div>
+            <h2 className="font-serif text-2xl font-medium text-charcoal-900 tracking-tight mt-1">
+              Logistical Diagnostics & Mitigation Radar
+            </h2>
+            <p className="text-xs text-charcoal-500 font-sans mt-0.5">
+              Live AI diagnostic scan of sound curfews, single-lane access choke points, weather shifts, and capacity thresholds.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={isScanningRadar}
+              onClick={handleScanRiskRadar}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md bg-cream-100 hover:bg-cream-200 border border-atelier-border text-charcoal-800 transition-colors shadow-atelier disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-forest ${isScanningRadar ? 'animate-spin' : ''}`} />
+              <span>{isScanningRadar ? 'Auditing with Gemini...' : 'Re-Scan Risk Radar'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Risk Items Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {activeRisks.map((riskItem, idx) => (
+            <div
+              key={riskItem.id || idx}
+              className={`p-4 rounded-lg border transition-all flex flex-col justify-between ${
+                riskItem.resolved
+                  ? 'bg-cream-50/70 border-atelier-border opacity-75'
+                  : riskItem.severity === 'High'
+                  ? 'bg-rose-50/40 border-rose-200'
+                  : riskItem.severity === 'Medium'
+                  ? 'bg-amber-50/40 border-amber-200'
+                  : 'bg-cream-50 border-atelier-border'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider rounded ${
+                      riskItem.severity === 'High'
+                        ? 'bg-rose-100 text-rose-800'
+                        : riskItem.severity === 'Medium'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-cream-300 text-charcoal-700'
+                    }`}
+                  >
+                    {riskItem.severity} Severity Risk
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRiskResolved(idx)}
+                    className="flex items-center gap-1 text-[11px] font-sans font-medium text-charcoal-600 hover:text-charcoal-900"
+                  >
+                    {riskItem.resolved ? (
+                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                        <Check className="w-3.5 h-3.5" /> Mitigated
+                      </span>
+                    ) : (
+                      <span className="text-charcoal-400 hover:text-charcoal-700">Mark Mitigated</span>
+                    )}
+                  </button>
+                </div>
+
+                <h4 className="font-serif text-base font-semibold text-charcoal-900">
+                  {riskItem.risk}
+                </h4>
+
+                <p className="text-xs text-charcoal-700 font-sans leading-relaxed bg-white/80 p-2.5 rounded border border-atelier-border/60">
+                  <strong className="text-charcoal-900 font-medium">Mitigation Plan:</strong> {riskItem.mitigation}
+                </p>
+              </div>
+
+              <div className="pt-3 mt-3 border-t border-atelier-border/60 flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-wider font-sans text-charcoal-400">
+                  Status: {riskItem.resolved ? 'Mitigated' : 'Requires Protocol'}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handleConvertRiskToTask(riskItem, idx)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded bg-white hover:bg-cream-100 border border-atelier-border text-forest transition-colors shadow-atelier"
+                >
+                  <Plus className="w-3 h-3 text-forest" />
+                  <span>Convert to Timeline Task</span>
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {activeRisks.length === 0 && (
+            <div className="col-span-2 py-8 text-center bg-cream-50 rounded border border-dashed border-atelier-border text-xs text-charcoal-500 italic">
+              No active logistical vulnerabilities recorded. Click &ldquo;Re-Scan Risk Radar&rdquo; to analyze this event.
+            </div>
+          )}
+        </div>
+
+        {/* Personalized Ideas Swatches & Decor Highlights (if present) */}
+        {event.personalizedIdeas && (
+          <div className="pt-4 border-t border-atelier-border mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-cream-50 p-4 rounded-lg border border-atelier-border space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal-700">
+                <Palette className="w-3.5 h-3.5 text-forest" />
+                <span>Personalized Aesthetic Palette</span>
+              </div>
+              <p className="text-xs font-serif italic text-charcoal-600">
+                &ldquo;{event.personalizedIdeas.theme}&rdquo;
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                {event.personalizedIdeas.colorPalette.map((hex, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <div
+                      className="w-7 h-7 rounded border border-charcoal-300 shadow-atelier"
+                      style={{ backgroundColor: hex }}
+                      title={hex}
+                    />
+                    <span className="text-[9px] font-mono text-charcoal-500 uppercase">{hex}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-cream-50 p-4 rounded-lg border border-atelier-border space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal-700">
+                <Lightbulb className="w-3.5 h-3.5 text-ochre" />
+                <span>Tactile Decor Highlights</span>
+              </div>
+              <ul className="space-y-1 text-xs text-charcoal-600 font-sans">
+                {event.personalizedIdeas.decorHighlights.map((hl, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-ochre mt-1.5 flex-shrink-0" />
+                    <span>{hl}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Navigation Cards */}

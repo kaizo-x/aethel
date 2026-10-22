@@ -72,6 +72,39 @@ export interface MoodboardItem {
   aspect?: 'tall' | 'wide' | 'square';
 }
 
+export interface RiskRadarItem {
+  id?: string;
+  risk: string;
+  severity: 'High' | 'Medium' | 'Low';
+  mitigation: string;
+  resolved?: boolean;
+}
+
+export interface PersonalizedIdeas {
+  theme: string;
+  colorPalette: string[];
+  decorHighlights: string[];
+}
+
+export interface GeneratedEventResponse {
+  eventMeta: {
+    title: string;
+    eventType: 'Wedding' | 'Birthday' | 'Community' | string;
+    totalBudget: number;
+  };
+  riskRadar: RiskRadarItem[];
+  personalizedIdeas: PersonalizedIdeas;
+  budgetBreakdown: {
+    category: string;
+    allocatedAmount: number;
+    percentage: number;
+  }[];
+  timeline: {
+    timeframe: string;
+    tasks: string[];
+  }[];
+}
+
 export interface EventPlan {
   id: string;
   title: string;
@@ -88,6 +121,8 @@ export interface EventPlan {
   tasks: TimelineTask[];
   vendors: Vendor[];
   moodboard: MoodboardItem[];
+  riskRadar?: RiskRadarItem[];
+  personalizedIdeas?: PersonalizedIdeas;
   createdAt: string;
   updatedAt: string;
 }

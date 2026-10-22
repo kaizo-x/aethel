@@ -121,7 +121,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
   };
 
   // Generate intelligent contextual response
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputPrompt).trim();
     if (!text) return;
 
@@ -136,7 +136,72 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
     setInputPrompt('');
     setIsThinking(true);
 
-    // Contextual responses based on keywords
+    // Call Gemini API route
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: text,
+          eventContext: event,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        let aiContent = '';
+        let generatedSuggestions: AiSuggestion[] = [];
+
+        if (data.personalizedIdeas?.theme) {
+          aiContent = `Architectural Analysis for "${event.title}":\n\n` +
+            `**Theme Synthesis**: "${data.personalizedIdeas.theme}"\n` +
+            `**Color Palette**: ${data.personalizedIdeas.colorPalette?.join('  •  ') || '#1B3B36 • #C89047'}\n\n` +
+            `**Key Decor Touchpoints**:\n` +
+            data.personalizedIdeas.decorHighlights?.map((dh: string) => `• ${dh}`).join('\n') +
+            `\n\n**Logistical Risk Radar**:\n` +
+            data.riskRadar?.map((rr: any) => `• [${rr.severity}] ${rr.risk}: ${rr.mitigation}`).join('\n');
+        } else {
+          aiContent = `Synthesized recommendations for "${event.title}" (${formatCurrency(
+            event.totalBudget
+          )} across ${event.guestCount} guests). Prioritize tactile materiality, 2400K lighting, and clear load-in buffers.`;
+        }
+
+        if (data.riskRadar && data.riskRadar.length > 0) {
+          const topRisk = data.riskRadar[0];
+          generatedSuggestions.push({
+            title: `Mitigate: ${topRisk.risk.slice(0, 30)}...`,
+            description: topRisk.mitigation,
+            category: 'contingency',
+            actionLabel: 'Add Risk Mitigation',
+            actionType: 'add_task',
+          });
+        }
+
+        generatedSuggestions.push({
+          title: 'Shift 5% Budget to Eco Decor',
+          description: 'Redistribute allocation toward heirloom tableware and foam-free botanical mechanics.',
+          category: 'budget',
+          actionLabel: 'Apply Eco Allocation',
+          actionType: 'apply_budget_preset',
+        });
+
+        const botMsg: AiChatMessage = {
+          id: `bot-${Date.now()}`,
+          role: 'assistant',
+          content: aiContent,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          suggestions: generatedSuggestions,
+        };
+
+        setMessages((prev) => [...prev, botMsg]);
+        setIsThinking(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('API call failed, using atelier fallback:', e);
+    }
+
+    // Fallback contextual responses
     setTimeout(() => {
       let aiContent = '';
       let generatedSuggestions: AiSuggestion[] = [];

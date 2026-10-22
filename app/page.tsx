@@ -12,7 +12,15 @@ import {
   FileJson,
   Plus,
 } from 'lucide-react';
-import { EventPlan, BudgetCategory, TimelineTask, Vendor, MoodboardItem } from '@/lib/types';
+import {
+  EventPlan,
+  BudgetCategory,
+  TimelineTask,
+  Vendor,
+  MoodboardItem,
+  RiskRadarItem,
+  PersonalizedIdeas,
+} from '@/lib/types';
 import { INITIAL_PRESETS, INITIAL_WEDDING, INITIAL_BIRTHDAY, INITIAL_COMMUNITY } from '@/lib/initialData';
 import { Header } from '@/components/Header';
 import { OverviewDashboard } from '@/components/OverviewDashboard';
@@ -149,6 +157,22 @@ export default function AtelierPage() {
     updateCurrentEvent((prev) => ({
       ...prev,
       tasks: [task, ...prev.tasks],
+      updatedAt: new Date().toISOString(),
+    }));
+  };
+
+  const handleUpdateRiskRadar = (riskRadar: RiskRadarItem[]) => {
+    updateCurrentEvent((prev) => ({
+      ...prev,
+      riskRadar,
+      updatedAt: new Date().toISOString(),
+    }));
+  };
+
+  const handleUpdatePersonalizedIdeas = (personalizedIdeas: PersonalizedIdeas) => {
+    updateCurrentEvent((prev) => ({
+      ...prev,
+      personalizedIdeas,
       updatedAt: new Date().toISOString(),
     }));
   };
@@ -292,6 +316,9 @@ export default function AtelierPage() {
               event={currentEvent}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onAddMoodboardItem={handleAddMoodboardItem}
+              onUpdateRiskRadar={handleUpdateRiskRadar}
+              onAddTimelineTask={handleAddTaskFromAi}
+              onUpdatePersonalizedIdeas={handleUpdatePersonalizedIdeas}
             />
           )}
 

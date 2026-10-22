@@ -431,6 +431,45 @@ export const INITIAL_WEDDING: EventPlan = {
       aspect: 'square',
     },
   ],
+  riskRadar: [
+    {
+      id: 'rr-w-1',
+      risk: 'Sound Ordinance Violation (10:00 PM Valley Curfew)',
+      severity: 'High',
+      mitigation: 'Transition amplified vinyl to acoustic strings by 09:30 PM; dispatch final guest shuttle loops by 09:45 PM.',
+      resolved: false,
+    },
+    {
+      id: 'rr-w-2',
+      risk: 'Narrow Mountain Access Road Shuttle Bottleneck',
+      severity: 'High',
+      mitigation: 'Stagger two 24-passenger Mercedes Sprinters on 20-minute turnaround rotation with dedicated radio valet coordinator.',
+      resolved: true,
+    },
+    {
+      id: 'rr-w-3',
+      risk: 'Late Afternoon Sun Heat Exposure During Altar Vows',
+      severity: 'Medium',
+      mitigation: 'Distribute hand-woven palm fans and chilled botanical citrus spritzes upon lower courtyard guest arrival.',
+      resolved: true,
+    },
+    {
+      id: 'rr-w-4',
+      risk: 'Foam-Free Floral Arch Stability in Canyon Wind Gusts',
+      severity: 'Low',
+      mitigation: 'Anchor heavy iron ballast baseplates and guy-wire tiebacks concealed beneath terracotta olive planters.',
+      resolved: false,
+    },
+  ],
+  personalizedIdeas: {
+    theme: 'Warm Earthy Modernism & Linen Dusk',
+    colorPalette: ['#1B3B36', '#C89047', '#D5CCC1', '#FAF4EB'],
+    decorHighlights: [
+      'Sculptural foam-free olive branch urns',
+      'Hand-poured beeswax fluted pillars',
+      'Deckled-edge calligraphed stone menus',
+    ],
+  },
   createdAt: '2026-01-10T10:00:00.000Z',
   updatedAt: '2026-10-22T12:00:00.000Z',
 };
@@ -667,6 +706,38 @@ export const INITIAL_BIRTHDAY: EventPlan = {
       aspect: 'tall',
     },
   ],
+  riskRadar: [
+    {
+      id: 'rr-b-1',
+      risk: 'Penthouse Building Capacity Exceeded (>50 Persons)',
+      severity: 'High',
+      mitigation: 'Implement ground-level doorman check-in desk with strictly scanned digital invite list; no walk-in admissions.',
+      resolved: true,
+    },
+    {
+      id: 'rr-b-2',
+      risk: 'Glassware Tip / Fracture on Outdoor Terrace',
+      severity: 'Medium',
+      mitigation: 'Position Champagne coupe tower on heavy solid oak bar indoors; use shatter-proof polycarbonate amber tumblers on perimeter.',
+      resolved: false,
+    },
+    {
+      id: 'rr-b-3',
+      risk: 'Elevator Window Missed for Furniture Delivery',
+      severity: 'Medium',
+      mitigation: 'Pre-book dedicated freight operator 48 hours prior with confirmed 02:00 PM - 03:00 PM loading window.',
+      resolved: true,
+    },
+  ],
+  personalizedIdeas: {
+    theme: 'Kinfolk Monochromatic Rooftop Soirée',
+    colorPalette: ['#1A1918', '#C89047', '#EAE4DC', '#575553'],
+    decorHighlights: [
+      'Vintage French coupe champagne pyramid',
+      'Single-stem dark anthurium ceramics',
+      'Wireless architectural 2200k ambient spotlights',
+    ],
+  },
   createdAt: '2026-02-15T14:00:00.000Z',
   updatedAt: '2026-10-22T12:00:00.000Z',
 };
@@ -913,6 +984,45 @@ export const INITIAL_COMMUNITY: EventPlan = {
       aspect: 'square',
     },
   ],
+  riskRadar: [
+    {
+      id: 'rr-c-1',
+      risk: 'Volunteer Dehydration & Mid-Day Heat Fatigue',
+      severity: 'High',
+      mitigation: 'Establish two shaded hydration canopies with 50-gallon filtered water refill kegs and electrolyte packs.',
+      resolved: true,
+    },
+    {
+      id: 'rr-c-2',
+      risk: 'Park Greenway Digging Permits Not Displayed',
+      severity: 'High',
+      mitigation: 'Laminate City Municipal Park Permit and anchor to volunteer sign-in easel alongside emergency first-aid kit.',
+      resolved: true,
+    },
+    {
+      id: 'rr-c-3',
+      risk: 'Shovel & Spade Blisters / Ergonomic Hand Strain',
+      severity: 'Medium',
+      mitigation: 'Mandatory 15-minute ergonomic planting demo and provide 150 pairs of reinforced cotton nitrile work gloves.',
+      resolved: false,
+    },
+    {
+      id: 'rr-c-4',
+      risk: 'Plastic Contamination in Seedling Beds',
+      severity: 'Low',
+      mitigation: 'Enforce 100% compostable burlap sacks and biodegradable jute twine across all tree planting zones.',
+      resolved: true,
+    },
+  ],
+  personalizedIdeas: {
+    theme: 'Tactile Botanical Greenway Restoration',
+    colorPalette: ['#1B3B36', '#4A6B5D', '#D2B48C', '#F5F5DC'],
+    decorHighlights: [
+      'Burlap-wrapped native sapling root balls',
+      'Terracotta plant stakes with hand-lettered chalk names',
+      'Communal cedar picnic trestles with heirloom bread boards',
+    ],
+  },
   createdAt: '2026-03-01T09:00:00.000Z',
   updatedAt: '2026-10-22T12:00:00.000Z',
 };

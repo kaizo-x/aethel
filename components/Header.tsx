@@ -14,7 +14,14 @@ import {
   Check,
 } from 'lucide-react';
 import { EventPlan } from '@/lib/types';
-import { formatCurrency, exportEventAsJson, triggerPrintPreview } from '@/lib/utils';
+import {
+  formatCurrency,
+  exportEventAsJson,
+  exportBudgetAsCsv,
+  exportTimelineAsCsv,
+  generateMarkdownDossier,
+  triggerPrintPreview,
+} from '@/lib/utils';
 
 interface HeaderProps {
   currentEvent: EventPlan;
@@ -191,7 +198,11 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
 
               {isExportDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-md bg-white border border-atelier-border shadow-atelier-lg py-1 z-50 animate-in fade-in slide-in-from-top-1">
+                <div className="absolute right-0 mt-2 w-64 rounded-md bg-white border border-atelier-border shadow-atelier-lg py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+                  <div className="px-3.5 py-1 text-[10px] font-sans font-semibold uppercase tracking-wider text-charcoal-400 border-b border-atelier-border/60 mb-1">
+                    Live Export Suite
+                  </div>
+
                   <button
                     onClick={() => {
                       triggerPrintPreview();
@@ -222,10 +233,55 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <button
                     onClick={() => {
-                      handleShareLink();
+                      exportBudgetAsCsv(currentEvent);
+                      setIsExportDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-charcoal-800 hover:bg-cream-100 flex items-center gap-2.5 transition-colors"
+                  >
+                    <Download className="w-4 h-4 text-emerald-700" />
+                    <div>
+                      <p className="font-medium">Export Budget (CSV)</p>
+                      <p className="text-[10px] text-charcoal-500">Line-item financial spreadsheet</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      exportTimelineAsCsv(currentEvent);
+                      setIsExportDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-charcoal-800 hover:bg-cream-100 flex items-center gap-2.5 transition-colors"
+                  >
+                    <Download className="w-4 h-4 text-blue-700" />
+                    <div>
+                      <p className="font-medium">Export Timeline (CSV)</p>
+                      <p className="text-[10px] text-charcoal-500">Production schedule spreadsheet</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const md = generateMarkdownDossier(currentEvent);
+                      navigator.clipboard.writeText(md);
+                      setCopiedNotification(true);
+                      setTimeout(() => setCopiedNotification(false), 2000);
                       setIsExportDropdownOpen(false);
                     }}
                     className="w-full text-left px-3.5 py-2 text-xs text-charcoal-800 hover:bg-cream-100 flex items-center gap-2.5 transition-colors border-t border-atelier-border/60"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <div>
+                      <p className="font-medium">Copy Markdown Dossier</p>
+                      <p className="text-[10px] text-charcoal-500">Formatted text for docs & notes</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      handleShareLink();
+                      setIsExportDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-charcoal-800 hover:bg-cream-100 flex items-center gap-2.5 transition-colors"
                   >
                     {copiedNotification ? (
                       <Check className="w-4 h-4 text-emerald-600" />
