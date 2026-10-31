@@ -10,14 +10,14 @@ import {
   Trash2,
   Filter,
   AlertCircle,
-  Flag,
   User,
-  Tag,
-  Check,
+  CalendarCheck,
+  Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { EventPlan, TimelinePhase, TimelineTask } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
+import { exportToiCal } from '@/lib/exportUtils';
 
 interface TimelineBoardProps {
   event: EventPlan;
@@ -31,6 +31,7 @@ export const TimelineBoard: React.FC<TimelineBoardProps> = ({
   const [activePhaseFilter, setActivePhaseFilter] = useState<string>('all');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [iCalDownloaded, setICalDownloaded] = useState(false);
 
   // New task form state
   const [taskTitle, setTaskTitle] = useState('');
@@ -79,6 +80,13 @@ export const TimelineBoard: React.FC<TimelineBoardProps> = ({
     onUpdateTasks(updated);
   };
 
+  // Export .ics calendar
+  const handleExportIcs = () => {
+    exportToiCal(event.tasks, event.title, event.date);
+    setICalDownloaded(true);
+    setTimeout(() => setICalDownloaded(false), 2200);
+  };
+
   // Add new task
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,19 +121,19 @@ export const TimelineBoard: React.FC<TimelineBoardProps> = ({
     switch (priority) {
       case 'critical':
         return (
-          <span className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider bg-rose-100 text-rose-800 rounded">
+          <span className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider bg-rose-100 text-rose-800 rounded border border-rose-200">
             Critical
           </span>
         );
       case 'high':
         return (
-          <span className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 rounded">
+          <span className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider bg-amber-100 text-amber-800 rounded border border-amber-200">
             High
           </span>
         );
       case 'medium':
         return (
-          <span className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider bg-cream-300 text-charcoal-700 rounded">
+          <span className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider bg-cream-300 text-charcoal-700 rounded border border-atelier-border">
             Medium
           </span>
         );
@@ -159,21 +167,34 @@ export const TimelineBoard: React.FC<TimelineBoardProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-forest" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-medium text-charcoal-900 tracking-tight mt-1">
-              Timeline & Run of Show
+              Timeline & Master Run of Show
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-600 mt-1 max-w-2xl font-sans">
-              From foundational milestone sign-offs at T-6 Months to the minute-by-minute execution on Day-Of.
+              From foundational milestone sign-offs at T-6 Months to the minute-by-minute execution on Day-Of. Synchronize to Google & Apple Calendar with one click.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsAddingTask(!isAddingTask)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-forest hover:bg-forest-light text-cream-50 text-xs font-semibold rounded-md transition-colors shadow-atelier self-start md:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Milestone Task</span>
-          </button>
+          <div className="flex items-center gap-2.5 self-start md:self-auto">
+            {/* .ics Sync Button */}
+            <button
+              type="button"
+              onClick={handleExportIcs}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-cream-100 hover:bg-cream-200 border border-atelier-border text-charcoal-800 text-xs font-semibold rounded-md transition-colors shadow-atelier"
+            >
+              <CalendarCheck className="w-4 h-4 text-forest" />
+              <span>{iCalDownloaded ? 'iCal Downloaded!' : 'Export .ics Cadence'}</span>
+            </button>
+
+            {/* Add Task Button */}
+            <button
+              type="button"
+              onClick={() => setIsAddingTask(!isAddingTask)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-forest hover:bg-forest-light text-cream-50 text-xs font-semibold rounded-md transition-colors shadow-atelier"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Milestone</span>
+            </button>
+          </div>
         </div>
 
         {/* Phase Filter Tabs */}

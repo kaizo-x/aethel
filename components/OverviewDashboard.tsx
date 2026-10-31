@@ -12,22 +12,21 @@ import {
   AlertCircle,
   ArrowUpRight,
   Plus,
-  Image as ImageIcon,
   Shield,
   Layers,
-  ShieldAlert,
-  Radio,
-  RefreshCw,
-  Check,
   Palette,
   Lightbulb,
+  Heart,
+  Cake,
+  Leaf,
 } from 'lucide-react';
 import { EventPlan, MoodboardItem, RiskRadarItem, TimelineTask, PersonalizedIdeas } from '@/lib/types';
 import { formatCurrency, formatDate, calculateDaysRemaining } from '@/lib/utils';
+import { RiskRadarCard } from '@/components/RiskRadarCard';
 
 interface OverviewDashboardProps {
   event: EventPlan;
-  onNavigateTab: (tab: 'budget' | 'timeline' | 'vendors') => void;
+  onNavigateTab: (tab: 'budget' | 'timeline' | 'vendors' | 'persona') => void;
   onAddMoodboardItem?: (item: MoodboardItem) => void;
   onUpdateRiskRadar?: (risks: RiskRadarItem[]) => void;
   onAddTimelineTask?: (task: TimelineTask) => void;
@@ -52,13 +51,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   const daysRemaining = calculateDaysRemaining(event.date);
 
   // Compute budget metrics
-  const totalAllocated = event.categories.reduce((sum, cat) => sum + cat.allocated, 0);
   const totalActualSpent = event.categories.reduce((catSum, cat) => {
     const itemsSum = cat.items.reduce((iSum, item) => iSum + (item.actual || 0), 0);
     return catSum + itemsSum;
   }, 0);
 
-  const budgetRemaining = event.totalBudget - totalActualSpent;
   const budgetSpentPct = Math.min(100, Math.round((totalActualSpent / event.totalBudget) * 100));
   const perGuestCost = Math.round(event.totalBudget / (event.guestCount || 1));
 
@@ -101,8 +98,8 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       if (res.ok) {
         const data = await res.json();
         if (data.riskRadar && onUpdateRiskRadar) {
-          const formattedRisks: RiskRadarItem[] = data.riskRadar.map((r: any, idx: number) => ({
-            id: `rr-gen-${Date.now()}-${idx}`,
+          const formattedRisks: RiskRadarItem[] = data.riskRadar.map((r: RiskRadarItem, idx: number) => ({
+            id: r.id || `rr-gen-${Date.now()}-${idx}`,
             risk: r.risk,
             severity: r.severity || 'Medium',
             mitigation: r.mitigation,
@@ -148,8 +145,16 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   };
 
   const activeRisks = event.riskRadar || [];
-  const highRiskCount = activeRisks.filter((r) => r.severity === 'High').length;
-  const resolvedRiskCount = activeRisks.filter((r) => r.resolved).length;
+
+  // Persona module preview data
+  const personaBadge =
+    event.eventType === 'wedding'
+      ? { title: 'Wedding Atelier Suite', icon: Heart, desc: 'Seating Chart, Bridal Milestones, Diet Tracker' }
+      : event.eventType === 'birthday'
+      ? { title: 'Soirée Lounge Suite', icon: Cake, desc: 'Hourly Cadence, Spotify BPM Queue, Wishlist Registry' }
+      : { title: 'Civic Operations Hub', icon: Leaf, desc: 'Municipal Permits, Shift Scheduler, Emergency Matrix' };
+
+  const PersonaIcon = personaBadge.icon;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -162,7 +167,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           <div className="space-y-3 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="px-2.5 py-1 text-[11px] font-sans font-semibold uppercase tracking-widest bg-forest/10 text-forest rounded">
-                {event.eventType} Atelier
+                {event.eventType} Persona
               </span>
               <span className="text-xs text-charcoal-500 flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-charcoal-400" />
@@ -235,7 +240,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             <span>Limit: {formatCurrency(event.totalBudget)}</span>
             <span className="font-medium text-forest">{budgetSpentPct}% utilized</span>
           </div>
-          {/* Progress bar */}
           <div className="w-full bg-cream-300 h-1.5 rounded-full mt-3 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
@@ -261,14 +265,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           </div>
           <div className="mt-3 text-[11px] text-charcoal-500 flex items-center gap-1 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-ochre inline-block" />
-            Optimized for intimate hospitality
+            Optimized for hospitality
           </div>
         </div>
 
         {/* Metric 3: Master Timeline Progress */}
         <div className="bg-white border border-atelier-border p-5 rounded-lg shadow-atelier hover:border-charcoal-300 transition-colors">
           <div className="flex items-center justify-between text-charcoal-500 mb-2">
-            <span className="text-xs uppercase tracking-wider font-sans font-medium">Timeline Execution</span>
+            <span className="text-xs uppercase tracking-wider font-sans font-medium">Cadence Execution</span>
             <CheckCircle2 className="w-4 h-4 text-forest" />
           </div>
           <div className="text-2xl font-serif font-semibold text-charcoal-900">
@@ -316,175 +320,133 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
       </div>
 
-      {/* Automated Event Risk Radar (Gemini Powered) */}
-      <div className="bg-white border border-atelier-border rounded-lg p-6 sm:p-8 shadow-atelier space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-atelier-border pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase tracking-widest font-sans font-semibold text-rose-800 flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-rose-700" />
-                Automated Event Risk Radar
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-700" />
-              {radarEngineBadge && (
-                <span className="px-2 py-0.5 text-[10px] font-sans font-semibold bg-forest/10 text-forest rounded-full">
-                  {radarEngineBadge}
-                </span>
-              )}
-            </div>
-            <h2 className="font-serif text-2xl font-medium text-charcoal-900 tracking-tight mt-1">
-              Logistical Diagnostics & Mitigation Radar
-            </h2>
-            <p className="text-xs text-charcoal-500 font-sans mt-0.5">
-              Live AI diagnostic scan of sound curfews, single-lane access choke points, weather shifts, and capacity thresholds.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={isScanningRadar}
-              onClick={handleScanRiskRadar}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md bg-cream-100 hover:bg-cream-200 border border-atelier-border text-charcoal-800 transition-colors shadow-atelier disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-forest ${isScanningRadar ? 'animate-spin' : ''}`} />
-              <span>{isScanningRadar ? 'Auditing with Gemini...' : 'Re-Scan Risk Radar'}</span>
-            </button>
-          </div>
+      {/* Financial Category Summaries Bar */}
+      <div className="bg-white border border-atelier-border rounded-lg p-6 shadow-atelier space-y-4">
+        <div className="flex items-center justify-between border-b border-atelier-border pb-3">
+          <h3 className="font-serif text-lg font-medium text-charcoal-900">
+            Financial Category Summaries
+          </h3>
+          <button
+            onClick={() => onNavigateTab('budget')}
+            className="text-xs text-forest hover:underline font-medium flex items-center gap-1"
+          >
+            <span>Open Budget Rebalancer</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Risk Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activeRisks.map((riskItem, idx) => (
-            <div
-              key={riskItem.id || idx}
-              className={`p-4 rounded-lg border transition-all flex flex-col justify-between ${
-                riskItem.resolved
-                  ? 'bg-cream-50/70 border-atelier-border opacity-75'
-                  : riskItem.severity === 'High'
-                  ? 'bg-rose-50/40 border-rose-200'
-                  : riskItem.severity === 'Medium'
-                  ? 'bg-amber-50/40 border-amber-200'
-                  : 'bg-cream-50 border-atelier-border'
-              }`}
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider rounded ${
-                      riskItem.severity === 'High'
-                        ? 'bg-rose-100 text-rose-800'
-                        : riskItem.severity === 'Medium'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-cream-300 text-charcoal-700'
-                    }`}
-                  >
-                    {riskItem.severity} Severity Risk
-                  </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {event.categories.map((cat) => {
+            const spent = cat.items.reduce((s, it) => s + (it.actual || 0), 0);
+            const spentPct = cat.allocated > 0 ? Math.min(100, Math.round((spent / cat.allocated) * 100)) : 0;
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggleRiskResolved(idx)}
-                    className="flex items-center gap-1 text-[11px] font-sans font-medium text-charcoal-600 hover:text-charcoal-900"
-                  >
-                    {riskItem.resolved ? (
-                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                        <Check className="w-3.5 h-3.5" /> Mitigated
-                      </span>
-                    ) : (
-                      <span className="text-charcoal-400 hover:text-charcoal-700">Mark Mitigated</span>
-                    )}
-                  </button>
+            return (
+              <div key={cat.id} className="p-3 rounded-md bg-cream-50 border border-atelier-border space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="truncate max-w-[120px] text-charcoal-900">{cat.name}</span>
+                  <span className="text-charcoal-500">{cat.percentage}%</span>
                 </div>
-
-                <h4 className="font-serif text-base font-semibold text-charcoal-900">
-                  {riskItem.risk}
-                </h4>
-
-                <p className="text-xs text-charcoal-700 font-sans leading-relaxed bg-white/80 p-2.5 rounded border border-atelier-border/60">
-                  <strong className="text-charcoal-900 font-medium">Mitigation Plan:</strong> {riskItem.mitigation}
-                </p>
+                <div className="font-serif text-base font-bold text-charcoal-900">
+                  {formatCurrency(cat.allocated)}
+                </div>
+                <div className="w-full bg-cream-300 h-1 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${spentPct}%`, backgroundColor: cat.color }}
+                  />
+                </div>
+                <div className="text-[10px] text-charcoal-500 flex justify-between">
+                  <span>Spent: {formatCurrency(spent)}</span>
+                  <span>{cat.items.length} items</span>
+                </div>
               </div>
-
-              <div className="pt-3 mt-3 border-t border-atelier-border/60 flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider font-sans text-charcoal-400">
-                  Status: {riskItem.resolved ? 'Mitigated' : 'Requires Protocol'}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => handleConvertRiskToTask(riskItem, idx)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded bg-white hover:bg-cream-100 border border-atelier-border text-forest transition-colors shadow-atelier"
-                >
-                  <Plus className="w-3 h-3 text-forest" />
-                  <span>Convert to Timeline Task</span>
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {activeRisks.length === 0 && (
-            <div className="col-span-2 py-8 text-center bg-cream-50 rounded border border-dashed border-atelier-border text-xs text-charcoal-500 italic">
-              No active logistical vulnerabilities recorded. Click &ldquo;Re-Scan Risk Radar&rdquo; to analyze this event.
-            </div>
-          )}
+            );
+          })}
         </div>
-
-        {/* Personalized Ideas Swatches & Decor Highlights (if present) */}
-        {event.personalizedIdeas && (
-          <div className="pt-4 border-t border-atelier-border mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-cream-50 p-4 rounded-lg border border-atelier-border space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal-700">
-                <Palette className="w-3.5 h-3.5 text-forest" />
-                <span>Personalized Aesthetic Palette</span>
-              </div>
-              <p className="text-xs font-serif italic text-charcoal-600">
-                &ldquo;{event.personalizedIdeas.theme}&rdquo;
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                {event.personalizedIdeas.colorPalette.map((hex, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <div
-                      className="w-7 h-7 rounded border border-charcoal-300 shadow-atelier"
-                      style={{ backgroundColor: hex }}
-                      title={hex}
-                    />
-                    <span className="text-[9px] font-mono text-charcoal-500 uppercase">{hex}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-cream-50 p-4 rounded-lg border border-atelier-border space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal-700">
-                <Lightbulb className="w-3.5 h-3.5 text-ochre" />
-                <span>Tactile Decor Highlights</span>
-              </div>
-              <ul className="space-y-1 text-xs text-charcoal-600 font-sans">
-                {event.personalizedIdeas.decorHighlights.map((hl, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-ochre mt-1.5 flex-shrink-0" />
-                    <span>{hl}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Embedded Contextual Risk Radar Component */}
+      <RiskRadarCard
+        risks={activeRisks}
+        onScanRadar={handleScanRiskRadar}
+        isScanning={isScanningRadar}
+        engineBadge={radarEngineBadge}
+        onToggleRiskResolved={handleToggleRiskResolved}
+        onConvertRiskToTask={handleConvertRiskToTask}
+      />
+
+      {/* Personalized Ideas Swatches & Decor Highlights */}
+      {event.personalizedIdeas && (
+        <div className="bg-white border border-atelier-border rounded-lg p-6 shadow-atelier grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal-700">
+              <Palette className="w-4 h-4 text-forest" />
+              <span>Aesthetic Color Palette</span>
+            </div>
+            <p className="text-xs font-serif italic text-charcoal-600">
+              &ldquo;{event.personalizedIdeas.theme}&rdquo;
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              {event.personalizedIdeas.colorPalette.map((hex, i) => (
+                <div key={i} className="flex flex-col items-center gap-1">
+                  <div
+                    className="w-10 h-10 rounded border border-charcoal-300 shadow-atelier"
+                    style={{ backgroundColor: hex }}
+                    title={hex}
+                  />
+                  <span className="text-[10px] font-mono text-charcoal-500 uppercase">{hex}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal-700">
+              <Lightbulb className="w-4 h-4 text-ochre" />
+              <span>Architectural Decor Highlights</span>
+            </div>
+            <ul className="space-y-2 text-xs text-charcoal-700 font-sans">
+              {event.personalizedIdeas.decorHighlights.map((hl, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="w-2 h-2 rounded-full bg-ochre mt-1 flex-shrink-0" />
+                  <span>{hl}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Navigation Cards Including Dedicated Persona Suite */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
+        {/* Persona Suite Card */}
+        <button
+          onClick={() => onNavigateTab('persona')}
+          className="text-left bg-forest/5 hover:bg-forest/10 border border-forest/30 hover:border-forest p-5 rounded-lg transition-all group shadow-atelier"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-forest flex items-center gap-1">
+              <PersonaIcon className="w-3.5 h-3.5" />
+              01 / Persona Suite
+            </span>
+            <ArrowUpRight className="w-4 h-4 text-forest group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+          <h3 className="font-serif text-lg font-medium text-charcoal-900">{personaBadge.title}</h3>
+          <p className="text-xs text-charcoal-600 mt-1">
+            {personaBadge.desc}
+          </p>
+        </button>
+
         <button
           onClick={() => onNavigateTab('budget')}
           className="text-left bg-cream-50 hover:bg-white border border-atelier-border hover:border-charcoal-400 p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-forest">01 / Financial Architecture</span>
+            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-forest">02 / Financial Blueprint</span>
             <ArrowUpRight className="w-4 h-4 text-charcoal-400 group-hover:text-forest group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
-          <h3 className="font-serif text-lg font-medium text-charcoal-900">Budget Calculator & Rebalancer</h3>
+          <h3 className="font-serif text-lg font-medium text-charcoal-900">Budget Rebalancer</h3>
           <p className="text-xs text-charcoal-500 mt-1">
             Dynamic sliders, locked category protection & itemized accounting.
           </p>
@@ -495,12 +457,12 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           className="text-left bg-cream-50 hover:bg-white border border-atelier-border hover:border-charcoal-400 p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-ochre-dark">02 / Chronological Cadence</span>
+            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-ochre-dark">03 / Production Cadence</span>
             <ArrowUpRight className="w-4 h-4 text-charcoal-400 group-hover:text-ochre-dark group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
-          <h3 className="font-serif text-lg font-medium text-charcoal-900">Reverse Timeline & Run of Show</h3>
+          <h3 className="font-serif text-lg font-medium text-charcoal-900">Reverse Run of Show</h3>
           <p className="text-xs text-charcoal-500 mt-1">
-            From T-6 Months foundational milestones down to hour-by-hour day-of cues.
+            T-6 Months down to Day-Of minutes with .ics calendar export.
           </p>
         </button>
 
@@ -509,10 +471,10 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           className="text-left bg-cream-50 hover:bg-white border border-atelier-border hover:border-charcoal-400 p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-charcoal-700">03 / Artisan Network</span>
+            <span className="text-xs uppercase font-sans font-semibold tracking-wider text-charcoal-700">04 / Artisan Network</span>
             <ArrowUpRight className="w-4 h-4 text-charcoal-400 group-hover:text-charcoal-800 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </div>
-          <h3 className="font-serif text-lg font-medium text-charcoal-900">Vendor Directory & AI Email Inquiries</h3>
+          <h3 className="font-serif text-lg font-medium text-charcoal-900">Vendor Inquiries</h3>
           <p className="text-xs text-charcoal-500 mt-1">
             Tailored negotiation and load-in drafts ready to dispatch in one click.
           </p>
@@ -592,7 +554,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           </form>
         )}
 
-        {/* Moodboard Image Masonry / Grid */}
+        {/* Moodboard Image Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {event.moodboard.map((item) => (
             <div
@@ -607,7 +569,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   onError={(e) => {
-                    // Fallback to stylized abstract placeholder
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />

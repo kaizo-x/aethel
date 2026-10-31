@@ -103,8 +103,127 @@ export interface GeneratedEventResponse {
     timeframe: string;
     tasks: string[];
   }[];
+  rebalancedCategories?: BudgetCategory[];
+  chatReply?: string;
 }
 
+// -------------------------------------------------------------
+// PERSONA 1: WEDDINGS (High-Complexity / Elegance Focus)
+// -------------------------------------------------------------
+export interface SeatingTable {
+  id: string;
+  name: string; // e.g. "Table 1 — Olive Grove", "Head Table — Terra Cotta"
+  shape: 'round' | 'rectangular' | 'head';
+  capacity: number;
+  assignedGuests: string[]; // guest names
+  notes?: string;
+}
+
+export interface BridalPartyMilestone {
+  id: string;
+  role: string; // e.g. "Maid of Honor", "Best Man", "Bridesmaids", "Officiant", "All"
+  milestone: string; // e.g. "Hair & Makeup Call Sheet", "Bouquet Toss"
+  time: string; // e.g. "10:30 AM"
+  completed: boolean;
+  location?: string;
+}
+
+export interface RsvpGuest {
+  id: string;
+  name: string;
+  status: 'confirmed' | 'pending' | 'declined';
+  dietary: 'None' | 'Vegan' | 'Vegetarian' | 'Gluten-Free' | 'Dairy-Free' | 'Nut Allergy' | 'Halal' | 'Kosher';
+  tableId?: string;
+  plusOne?: boolean;
+}
+
+export interface WeddingDetails {
+  tables: SeatingTable[];
+  bridalParty: BridalPartyMilestone[];
+  rsvps: RsvpGuest[];
+}
+
+// -------------------------------------------------------------
+// PERSONA 2: BIRTHDAYS & SOIRÉES (Vibe / Speed Focus)
+// -------------------------------------------------------------
+export interface PartyItineraryItem {
+  id: string;
+  time: string; // e.g. "06:00 PM"
+  title: string; // e.g. "Doors Open & Natural Champagne Welcome"
+  vibeTag: 'Warm Mellow' | 'Golden Peak' | 'High Voltage' | 'Intimate Wind-Down';
+  description?: string;
+  completed?: boolean;
+}
+
+export interface MusicVibeTrack {
+  id: string;
+  title: string;
+  artist: string;
+  genre: string; // e.g. "Bossa Nova Vinyl", "Deep House", "Nu-Disco", "Indie French Pop"
+  bpm?: number;
+  duration?: string;
+  energy: 'low' | 'medium' | 'high';
+  upvotes: number;
+  spotifyUrl?: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  title: string;
+  category: string; // e.g. "Artisanal Barware", "Ceramics", "Experience", "Vinyl Records"
+  priceEstimate: number;
+  link?: string;
+  claimed: boolean;
+  claimedBy?: string;
+}
+
+export interface BirthdayDetails {
+  itinerary: PartyItineraryItem[];
+  tracks: MusicVibeTrack[];
+  wishlist: WishlistItem[];
+}
+
+// -------------------------------------------------------------
+// PERSONA 3: COMMUNITY DRIVES & CIVIC EVENTS (Logistics / Ops Focus)
+// -------------------------------------------------------------
+export interface PermitItem {
+  id: string;
+  permitName: string;
+  authority: string; // e.g. "City Parks & Recreation", "Fire Marshal", "Police Dept"
+  status: 'approved' | 'pending' | 'in_review' | 'exempt';
+  filingDeadline?: string;
+  permitNumber?: string;
+  notes?: string;
+}
+
+export interface VolunteerShift {
+  id: string;
+  shiftName: string;
+  timeWindow: string; // e.g. "08:00 AM - 11:00 AM"
+  capacity: number;
+  filled: number;
+  leadName: string;
+  tasksSummary: string;
+}
+
+export interface EmergencyRiskMatrixItem {
+  id: string;
+  hazard: string;
+  probability: 'Low' | 'Moderate' | 'High' | 'Severe';
+  impact: 'Low' | 'Moderate' | 'High' | 'Severe';
+  mitigationProtocol: string;
+  emergencyActionStep: string;
+}
+
+export interface CommunityDetails {
+  permits: PermitItem[];
+  shifts: VolunteerShift[];
+  emergencyMatrix: EmergencyRiskMatrixItem[];
+}
+
+// -------------------------------------------------------------
+// MASTER EVENT PLAN
+// -------------------------------------------------------------
 export interface EventPlan {
   id: string;
   title: string;
@@ -123,6 +242,10 @@ export interface EventPlan {
   moodboard: MoodboardItem[];
   riskRadar?: RiskRadarItem[];
   personalizedIdeas?: PersonalizedIdeas;
+  // Domain Persona Specific Modules
+  weddingDetails?: WeddingDetails;
+  birthdayDetails?: BirthdayDetails;
+  communityDetails?: CommunityDetails;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,8 +255,11 @@ export interface AiSuggestion {
   description: string;
   category: 'budget' | 'timeline' | 'vendor' | 'styling' | 'contingency';
   actionLabel?: string;
-  actionType?: 'apply_budget_preset' | 'add_task' | 'add_vendor' | 'rebalance_contingency';
-  payload?: any;
+  actionType?: 'apply_budget_preset' | 'add_task' | 'add_vendor' | 'rebalance_contingency' | 'apply_rebalance';
+  payload?: {
+    categories?: BudgetCategory[];
+    [key: string]: unknown;
+  };
 }
 
 export interface AiChatMessage {

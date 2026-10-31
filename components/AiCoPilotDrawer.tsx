@@ -7,7 +7,6 @@ import {
   Send,
   Bot,
   User,
-  ArrowRight,
   ShieldAlert,
   Sliders,
   Calendar,
@@ -15,8 +14,10 @@ import {
   Copy,
   Check,
   Zap,
+  ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
-import { EventPlan, AiChatMessage, AiSuggestion, TimelineTask, BudgetCategory } from '@/lib/types';
+import { EventPlan, AiChatMessage, AiSuggestion, TimelineTask, BudgetCategory, RiskRadarItem } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 
 interface AiCoPilotDrawerProps {
@@ -49,14 +50,14 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
       timestamp: 'Just now',
       suggestions: [
         {
-          title: 'Eco-Friendly Rebalance',
-          description: 'Rebalance 5% from media into organic foam-free floral curation and add composting permits.',
+          title: 'Dynamic Budget Re-Orchestration',
+          description: 'Rebalance allocations for seasonal climate shifts (e.g. monsoon weather, outdoor acoustic needs).',
           category: 'budget',
-          actionLabel: 'Apply 5% Shift to Decor',
+          actionLabel: 'Preview Monsoon Rebalance',
           actionType: 'apply_budget_preset',
         },
         {
-          title: 'Emergency Rain / Weather Plan',
+          title: 'Emergency Weather Protocol',
           description: 'Generate 3 high-priority contingency milestones (T-1 Week Tent hold & Day-Of Awning checks).',
           category: 'contingency',
           actionLabel: 'Add Weather Milestones',
@@ -70,18 +71,24 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
 
   // Preset prompt quick triggers
   const promptPresets = [
-    'Adjust budget for an eco-friendly venue & foam-free florals',
+    'Shift budget from decor to AV for an outdoor community drive in monsoon season with $4,000 budget',
+    'Rebalance budget: 45% catering, 20% decor, 15% media, 10% apparel, 10% contingency',
     'Generate emergency bad-weather contingency protocol',
     'Audit Day-Of timeline for potential sound curfew or transit bottlenecks',
-    'Suggest 4 seasonal cocktails & natural wine varietals',
   ];
 
   // Apply suggestion actions
   const handleApplyAction = (suggestion: AiSuggestion, indexId: string) => {
+    if (suggestion.actionType === 'apply_rebalance' && suggestion.payload?.categories && Array.isArray(suggestion.payload.categories)) {
+      onApplyCategoryUpdate(suggestion.payload.categories);
+      setActionAppliedMap((prev) => ({ ...prev, [indexId]: true }));
+      return;
+    }
+
     if (suggestion.actionType === 'apply_budget_preset') {
       // Rebalance: increase decor by 5%, decrease media by 5%
       const updatedCategories = event.categories.map((c) => {
-        if (c.name.includes('Decor')) {
+        if (c.name.toLowerCase().includes('decor') || c.name.toLowerCase().includes('av')) {
           const newPct = Math.min(100, c.percentage + 5);
           return {
             ...c,
@@ -89,7 +96,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
             allocated: Math.round((newPct / 100) * event.totalBudget),
           };
         }
-        if (c.name.includes('Media')) {
+        if (c.name.toLowerCase().includes('media') || c.name.toLowerCase().includes('contingency')) {
           const newPct = Math.max(5, c.percentage - 5);
           return {
             ...c,
@@ -103,11 +110,10 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
       onApplyCategoryUpdate(updatedCategories);
       setActionAppliedMap((prev) => ({ ...prev, [indexId]: true }));
     } else if (suggestion.actionType === 'add_task') {
-      // Add contingency task
       const newTask: TimelineTask = {
         id: `task-ai-${Date.now()}`,
-        title: 'Activate 48-Hour Weather Tent Deposit & Sidewall Inspection',
-        description: 'Verify canopy tie-downs, ground staking permits, and acoustic baffle coverage',
+        title: suggestion.title.startsWith('Mitigate') ? suggestion.title : 'Activate 48-Hour Weather Tent Deposit & Sidewall Inspection',
+        description: suggestion.description,
         phaseId: 't-1w',
         category: 'Contingency',
         completed: false,
@@ -149,48 +155,54 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        let aiContent = '';
-        let generatedSuggestions: AiSuggestion[] = [];
+        let aiContent = data.chatReply || '';
+        const generatedSuggestions: AiSuggestion[] = [];
 
-        if (data.personalizedIdeas?.theme) {
-          aiContent = `Architectural Analysis for "${event.title}":\n\n` +
-            `**Theme Synthesis**: "${data.personalizedIdeas.theme}"\n` +
-            `**Color Palette**: ${data.personalizedIdeas.colorPalette?.join('  •  ') || '#1B3B36 • #C89047'}\n\n` +
-            `**Key Decor Touchpoints**:\n` +
-            data.personalizedIdeas.decorHighlights?.map((dh: string) => `• ${dh}`).join('\n') +
-            `\n\n**Logistical Risk Radar**:\n` +
-            data.riskRadar?.map((rr: any) => `• [${rr.severity}] ${rr.risk}: ${rr.mitigation}`).join('\n');
-        } else {
-          aiContent = `Synthesized recommendations for "${event.title}" (${formatCurrency(
-            event.totalBudget
-          )} across ${event.guestCount} guests). Prioritize tactile materiality, 2400K lighting, and clear load-in buffers.`;
+        if (!aiContent) {
+          if (data.personalizedIdeas?.theme) {
+            aiContent = `Architectural Analysis for "${event.title}":\n\n` +
+              `**Theme Synthesis**: "${data.personalizedIdeas.theme}"\n` +
+              `**Color Palette**: ${data.personalizedIdeas.colorPalette?.join('  •  ') || '#1B3B36 • #C89047'}\n\n` +
+              `**Key Decor Touchpoints**:\n` +
+              data.personalizedIdeas.decorHighlights?.map((dh: string) => `• ${dh}`).join('\n') +
+              `\n\n**Logistical Risk Radar**:\n` +
+              data.riskRadar?.map((rr: RiskRadarItem) => `• [${rr.severity}] ${rr.risk}: ${rr.mitigation}`).join('\n');
+          } else {
+            aiContent = `Synthesized recommendations for "${event.title}" (${formatCurrency(
+              event.totalBudget
+            )} across ${event.guestCount} guests). Prioritize tactile materiality, 2400K lighting, and clear load-in buffers.`;
+          }
+        }
+
+        // Check if rebalanced categories are provided
+        if (data.rebalancedCategories && Array.isArray(data.rebalancedCategories)) {
+          generatedSuggestions.push({
+            title: 'Apply Rebalanced Budget Structure',
+            description: `Update all categories to match new calculation (${data.budgetBreakdown?.map((b: { category: string; percentage: number }) => `${b.category}: ${b.percentage}%`).join(', ')}).`,
+            category: 'budget',
+            actionLabel: '1-Click Apply Budget Rebalance',
+            actionType: 'apply_rebalance',
+            payload: { categories: data.rebalancedCategories },
+          });
         }
 
         if (data.riskRadar && data.riskRadar.length > 0) {
           const topRisk = data.riskRadar[0];
           generatedSuggestions.push({
-            title: `Mitigate: ${topRisk.risk.slice(0, 30)}...`,
+            title: `Mitigate: ${topRisk.risk.slice(0, 36)}...`,
             description: topRisk.mitigation,
             category: 'contingency',
-            actionLabel: 'Add Risk Mitigation',
+            actionLabel: 'Add Mitigation Task',
             actionType: 'add_task',
           });
         }
-
-        generatedSuggestions.push({
-          title: 'Shift 5% Budget to Eco Decor',
-          description: 'Redistribute allocation toward heirloom tableware and foam-free botanical mechanics.',
-          category: 'budget',
-          actionLabel: 'Apply Eco Allocation',
-          actionType: 'apply_budget_preset',
-        });
 
         const botMsg: AiChatMessage = {
           id: `bot-${Date.now()}`,
           role: 'assistant',
           content: aiContent,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          suggestions: generatedSuggestions,
+          suggestions: generatedSuggestions.length > 0 ? generatedSuggestions : undefined,
         };
 
         setMessages((prev) => [...prev, botMsg]);
@@ -201,43 +213,31 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
       console.warn('API call failed, using atelier fallback:', e);
     }
 
-    // Fallback contextual responses
+    // Fallback contextual response
     setTimeout(() => {
-      let aiContent = '';
-      let generatedSuggestions: AiSuggestion[] = [];
-
       const lower = text.toLowerCase();
+      let aiContent = '';
+      const generatedSuggestions: AiSuggestion[] = [];
 
-      if (lower.includes('eco') || lower.includes('green') || lower.includes('sustainable')) {
-        aiContent = `For "${event.title}", prioritizing sustainability will elevate the tactile elegance without inflating costs. I recommend:\n\n1. **Floral Architecture**: Specify foam-free wire mechanics (chicken wire and water tubes). Floral foam contains microplastics and is chemically harsh.\n2. **Linens & Tableware**: Rent heirloom stonewares and unbleached Belgian linen runners rather than single-use paper goods.\n3. **Biodynamic Beverage Curation**: Partner with minimal-intervention natural winemakers (e.g. orange pét-nats and local low-sulfite varietals).\n\nWould you like me to shift 5% of media into curated botanical decor?`;
-        generatedSuggestions = [
-          {
-            title: 'Shift 5% Budget to Eco Decor',
-            description: 'Redistribute allocation toward heirloom tableware and foam-free botanical mechanics.',
-            category: 'budget',
-            actionLabel: 'Apply Eco Allocation',
-            actionType: 'apply_budget_preset',
-          },
-        ];
-      } else if (lower.includes('weather') || lower.includes('rain') || lower.includes('contingency') || lower.includes('storm')) {
-        aiContent = `Inclement weather mitigation requires clear chronological triggers. Here is the recommended protocol for ${event.location}:\n\n- **T-72 Hours**: Check Doppler pressure systems. If precipitation probability > 35%, confirm tent sidewalls with rental provider.\n- **T-24 Hours**: Verify dry-run electrical cabling, covered catering prep paths, and mud mats for guest walkways.\n- **Day-Of**: Position an emergency umbrella valet station with 40 ivory canopy umbrellas.\n\nI have prepared a critical weather milestone for your master timeline.`;
-        generatedSuggestions = [
-          {
-            title: 'Insert Weather Milestone',
-            description: 'Add "Activate 48-Hour Weather Tent Deposit & Sidewall Inspection" to T-1 Week.',
-            category: 'contingency',
-            actionLabel: 'Add to Timeline',
-            actionType: 'add_task',
-          },
-        ];
-      } else if (lower.includes('curfew') || lower.includes('bottleneck') || lower.includes('timeline') || lower.includes('transit')) {
-        aiContent = `Analyzing the master run of show for "${event.title}":\n\n- **Acoustic Compliance**: The valley noise ordinance cut-off is strictly 10:00 PM. We recommend transitioning from amplified vinyl sound to acoustic strings or low ambient murmurs at 09:30 PM to avoid sudden abrupt cessation.\n- **Transit Loop Buffer**: With ${event.guestCount} guests requiring hillside shuttle transport, dispatch the first return shuttle loop at 09:15 PM so older guests or families can depart comfortably before the final mass exodus.\n\nEverything else in your Day-Of schedule flows with natural cadence.`;
-      } else if (lower.includes('cocktail') || lower.includes('wine') || lower.includes('drink') || lower.includes('menu')) {
-        aiContent = `Here is a bespoke beverage menu tailored to the vibe of "${event.themeVibe}":\n\n1. **The Ojai Golden Hour** (Botanical Aperitivo, Smoked Orange Peel, Rosemary Sprig, Dry Prosecco)\n2. **Topatopa Earth** (Mezcal Espadín, Clarified Grapefruit, Agave Nectar, Smoked Salt Rim)\n3. **Terracotta Sunset (Zero-Proof)** (Cold Brew Hibiscus, Spiced Ginger Cordial, Sparkling Mineral Water)\n\nRecommended wine pairing: Unfiltered Orange skin-contact Pinot Gris and a crisp Chablis.`;
+      if (lower.includes('shift') || lower.includes('rebalance') || lower.includes('monsoon')) {
+        aiContent = `Dynamic re-orchestration calculated for "${event.title}" (Monsoon & Outdoor AV Focus):\n\n` +
+          `• **AV, Stage & Waterproof Audio**: Scaled to 40% ($1,600) to cover IP65 weather-sealed PA, grounded power runs, and covered wooden riser stages.\n` +
+          `• **Signage & Ambience**: Trimmed to 15% ($600) focusing on laminated, rain-resistant directional wayfinding.\n` +
+          `• **Permits & Municipal Security**: Maintained at 25% ($1,000) for city park pavilion hold.\n` +
+          `• **Refreshments, Ponchos & Ops**: 20% ($800) for hot soup urns, 100 cornstarch rain ponchos, and cocoa-coir mud boardwalks.\n\n` +
+          `Would you like to apply this rebalanced allocation to your budget canvas?`;
+
+        generatedSuggestions.push({
+          title: 'Shift Budget to AV / Stage for Monsoon',
+          description: 'Rebalance allocations: 40% AV/Stage, 15% Decor, 25% Permits, 20% Refreshments/Ops.',
+          category: 'budget',
+          actionLabel: 'Apply 40% AV Rebalance',
+          actionType: 'apply_budget_preset',
+        });
       } else {
-        aiContent = `Understood. Analyzing your request in context with "${event.title}" (${formatCurrency(
+        aiContent = `Understood. Analyzing "${event.title}" (${formatCurrency(
           event.totalBudget
-        )} across ${event.guestCount} guests):\n\nTo ensure an effortless guest journey, every touchpoint should feel intentional and unhurried. Focus on tactile materiality (deckled-edge paper signage, warm 2400k candle amber hues, and seamless load-in buffers).\n\nLet me know if you would like me to adjust any category allocations or add specific operational checklists to your reverse timeline.`;
+        )} across ${event.guestCount} guests):\n\nEnsure clear load-in buffers, verify decibel curfews at 09:30 PM, and maintain 10% contingency for unforecasted weather adjustments.`;
       }
 
       const botMsg: AiChatMessage = {
@@ -250,7 +250,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
 
       setMessages((prev) => [...prev, botMsg]);
       setIsThinking(false);
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -313,8 +313,8 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
                 {/* Interactive Action Cards */}
                 {msg.suggestions && msg.suggestions.length > 0 && (
                   <div className="pt-2 border-t border-atelier-border/60 space-y-2">
-                    <span className="text-[10px] uppercase font-sans font-semibold tracking-wider text-charcoal-500 block">
-                      Recommended Action:
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-charcoal-500 block">
+                      Recommended 1-Click Action:
                     </span>
                     {msg.suggestions.map((sugg, idx) => {
                       const actionKey = `${msg.id}-${idx}`;
@@ -369,11 +369,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
                   </div>
                 )}
 
-                <div
-                  className={`text-[10px] text-right ${
-                    msg.role === 'user' ? 'text-charcoal-400' : 'text-charcoal-400'
-                  }`}
-                >
+                <div className="text-[10px] text-right text-charcoal-400">
                   {msg.timestamp}
                 </div>
               </div>
@@ -393,7 +389,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
               </div>
               <div className="p-3.5 rounded-lg bg-cream-100 border border-atelier-border text-charcoal-500 italic flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-forest animate-bounce" />
-                Synthesizing architectural recommendations...
+                Calculating dynamic re-orchestration & risk matrix...
               </div>
             </div>
           )}
@@ -403,14 +399,15 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
         <div className="px-5 py-2.5 bg-cream-50 border-t border-atelier-border overflow-x-auto whitespace-nowrap">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-charcoal-400">
-              Inquire:
+              Quick Scenarios:
             </span>
             {promptPresets.map((preset, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSendMessage(preset)}
-                className="px-2.5 py-1 text-[11px] rounded bg-white hover:bg-cream-200 text-charcoal-700 border border-atelier-border transition-colors flex-shrink-0"
+                className="px-2.5 py-1 text-[11px] rounded bg-white hover:bg-cream-200 text-charcoal-700 border border-atelier-border transition-colors flex-shrink-0 max-w-xs truncate"
+                title={preset}
               >
                 {preset}
               </button>
@@ -429,7 +426,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
           >
             <input
               type="text"
-              placeholder="Ask Aethel to rebalance budget, craft email, or assess risks..."
+              placeholder="e.g. Shift budget from decor to AV for outdoor community drive in monsoon..."
               value={inputPrompt}
               onChange={(e) => setInputPrompt(e.target.value)}
               className="flex-grow px-3.5 py-2.5 text-xs border border-atelier-border rounded-md bg-cream-50 focus:outline-none focus:border-forest text-charcoal-800"

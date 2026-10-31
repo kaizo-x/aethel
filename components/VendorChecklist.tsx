@@ -4,10 +4,8 @@ import React, { useState } from 'react';
 import {
   Mail,
   Phone,
-  ExternalLink,
   Copy,
   Check,
-  Star,
   Plus,
   Trash2,
   X,
@@ -17,6 +15,8 @@ import {
   Filter,
   Sparkles,
   FileText,
+  Clock,
+  ShieldAlert,
 } from 'lucide-react';
 import { EventPlan, Vendor, VendorStatus } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
@@ -36,6 +36,7 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>('all');
   const [isAddingVendor, setIsAddingVendor] = useState(false);
+  const [activeTone, setActiveTone] = useState<'Curatorial' | 'Budget Cap Negotiation' | 'Contract Deadline'>('Curatorial');
 
   // New vendor form state
   const [newVendorName, setNewVendorName] = useState('');
@@ -47,11 +48,60 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
   const [newVendorEstCost, setNewVendorEstCost] = useState('');
   const [newVendorNotes, setNewVendorNotes] = useState('');
 
+  // Generate Tone Templates
+  const generateEmailDraft = (vendor: Vendor, tone: 'Curatorial' | 'Budget Cap Negotiation' | 'Contract Deadline') => {
+    const contact = vendor.contactName || 'Team';
+    const costFormatted = formatCurrency(vendor.estimatedCost);
+
+    if (tone === 'Budget Cap Negotiation') {
+      return {
+        subject: `Scope Alignment & Fiscal Allocation Ceiling — ${event.title}`,
+        body: `Dear ${contact},\n\n` +
+          `Thank you for reviewing the creative brief for "${event.title}" (${event.guestCount} guests at ${event.location}). We have immense respect for your work and would love to collaborate.\n\n` +
+          `Our strict fiscal ceiling for ${vendor.role || vendor.category} is capped at ${costFormatted}, fully inclusive of all production setup fees, staffing, travel, and taxes.\n\n` +
+          `Could you review this cap and suggest potential scope adjustments or package rebalancing to accommodate this figure?\n\n` +
+          `Warm regards,\nAethel Event Atelier\nCuratorial Operations`,
+      };
+    }
+
+    if (tone === 'Contract Deadline') {
+      return {
+        subject: `URGENT: Contract Execution & Date Hold Expiration — ${event.title} (${event.date})`,
+        body: `Dear ${contact},\n\n` +
+          `We are following up regarding our preliminary reservation hold for "${event.title}" on ${event.date}.\n\n` +
+          `We are executing final vendor commitments and issuing retainers this week. To secure your participation, please provide your finalized agreement and payment schedule by this Friday at 5:00 PM EST.\n\n` +
+          `If we do not hear back by this deadline, we will need to release the date hold and proceed with our secondary partner on standby.\n\n` +
+          `Best regards,\nAethel Event Atelier\nProduction Lead`,
+      };
+    }
+
+    // Default: Curatorial
+    return {
+      subject: `Curatorial Partnership Inquiry: ${vendor.role || vendor.category} — ${event.title}`,
+      body: `Dear ${contact},\n\n` +
+        `We are curating an architectural event titled "${event.title}" on ${event.date} at ${event.location} for ${event.guestCount} guests.\n\n` +
+        `The aesthetic vision is grounded in: "${event.themeVibe}". We admire your tactile craftsmanship and would love to discuss your availability for our date.\n\n` +
+        `Please share your seasonal catalog, booking requirements, and preliminary portfolio at your earliest convenience.\n\n` +
+        `Warmest regards,\nAethel Event Atelier`,
+    };
+  };
+
   // Open inquiry drawer
   const handleOpenEmailDrawer = (vendor: Vendor) => {
     setSelectedVendorForEmail(vendor);
-    setEmailSubject(vendor.inquiryTemplate.subject);
-    setEmailBody(vendor.inquiryTemplate.body);
+    setActiveTone('Curatorial');
+    const draft = generateEmailDraft(vendor, 'Curatorial');
+    setEmailSubject(draft.subject);
+    setEmailBody(draft.body);
+  };
+
+  // Switch tone
+  const handleSwitchTone = (tone: 'Curatorial' | 'Budget Cap Negotiation' | 'Contract Deadline') => {
+    if (!selectedVendorForEmail) return;
+    setActiveTone(tone);
+    const draft = generateEmailDraft(selectedVendorForEmail, tone);
+    setEmailSubject(draft.subject);
+    setEmailBody(draft.body);
   };
 
   // Close inquiry drawer
@@ -122,40 +172,6 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
     onUpdateVendors(updated);
   };
 
-  // AI Rephrase helper
-  const handleAiRephrase = (tone: 'cordial' | 'budget_firm' | 'urgent') => {
-    if (!selectedVendorForEmail) return;
-
-    if (tone === 'budget_firm') {
-      setEmailBody(
-        `Dear ${selectedVendorForEmail.contactName || 'Team'},\n\n` +
-          `Thank you for reviewing Julian & Elena's event vision for "${event.title}". ` +
-          `We love your work and want to make this partnership feasible. \n\n` +
-          `Our strict allocation ceiling for this discipline is ${formatCurrency(
-            selectedVendorForEmail.estimatedCost
-          )} inclusive of all service fees and taxes. ` +
-          `Could you adjust your package scope or suggest alternate material formulations to meet this target?\n\n` +
-          `Warm regards,\nAethel Event Atelier`
-      );
-    } else if (tone === 'urgent') {
-      setEmailBody(
-        `Dear ${selectedVendorForEmail.contactName || 'Team'},\n\n` +
-          `Following up regarding our date hold for "${event.title}" on ${event.date}. ` +
-          `We are finalizing our vendor roster this week and require your contract and deposit terms by Friday 5:00 PM to secure the spot.\n\n` +
-          `Best regards,\nAethel Event Atelier`
-      );
-    } else {
-      // Cordial
-      setEmailBody(
-        `Dear ${selectedVendorForEmail.contactName || 'Team'},\n\n` +
-          `We are delighted to invite you to participate in curating "${event.title}". ` +
-          `The aesthetic tone is ${event.themeVibe}.\n\n` +
-          `Please find our initial scope outline attached. We look forward to scheduling a quick 15-minute consultation to walk through details.\n\n` +
-          `Warmest regards,\nAethel Event Atelier`
-      );
-    }
-  };
-
   // Add new vendor submit
   const handleAddVendorSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +193,7 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
       rating: 5.0,
       notes: newVendorNotes.trim() || undefined,
       inquiryTemplate: {
-        subject: `Partnership Inquiry: ${newVendorRole || 'Services'} — ${event.title}`,
+        subject: `Curatorial Partnership Inquiry: ${newVendorRole || 'Services'} — ${event.title}`,
         body: `Dear ${newVendorContact.trim() || 'Team'},\n\nWe are curating "${event.title}" on ${event.date} in ${event.location}.\n\nWe admire your artisanal craftsmanship and would love to review your availability and preliminary portfolio.\n\nWarm regards,\nAethel Event Atelier`,
       },
     };
@@ -215,10 +231,10 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-forest" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-medium text-charcoal-900 tracking-tight mt-1">
-              Vendor Directory & Smart Inquiries
+              Vendor Directory & Smart Outreach Generator
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-600 mt-1 max-w-2xl font-sans">
-              Curate vetted floral stylists, farm-to-table caterers, analog photographers, and transport fleets. Dispatch pre-drafted AI inquiry emails in seconds.
+              Curate vetted floral stylists, farm-to-table caterers, audio tech, and transport fleets. Generate tailored negotiation drafts with 3 quick-select tone presets.
             </p>
           </div>
 
@@ -228,7 +244,7 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-forest hover:bg-forest-light text-cream-50 text-xs font-semibold rounded-md transition-colors shadow-atelier self-start md:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Artisan Vendor</span>
+            <span>Add Artisan Partner</span>
           </button>
         </div>
 
@@ -466,14 +482,14 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
                   <option value="declined">Declined</option>
                 </select>
 
-                {/* Open Inquiry Drawer */}
+                {/* Open Outreach Drawer */}
                 <button
                   type="button"
                   onClick={() => handleOpenEmailDrawer(vendor)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-forest text-cream-50 hover:bg-forest-light transition-colors shadow-atelier"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-forest text-cream-50 hover:bg-forest-light transition-colors shadow-atelier"
                 >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Draft Email</span>
+                  <Sparkles className="w-3.5 h-3.5 text-ochre-light" />
+                  <span>Outreach Generator</span>
                 </button>
 
                 {/* Delete */}
@@ -497,7 +513,7 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
         )}
       </div>
 
-      {/* Slide-Over Side Drawer for Smart AI Email Inquiry */}
+      {/* Slide-Over Side Drawer for Smart AI Email Outreach Generator */}
       {selectedVendorForEmail && (
         <div className="fixed inset-0 z-50 flex justify-end bg-charcoal-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-xl bg-white h-full shadow-atelier-lg border-l border-atelier-border flex flex-col justify-between p-6 sm:p-8 animate-in slide-in-from-right duration-300">
@@ -511,7 +527,7 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
                   </div>
                   <div>
                     <h3 className="font-serif text-xl font-medium text-charcoal-900">
-                      Smart Vendor Inquiry
+                      Smart Vendor Outreach Generator
                     </h3>
                     <p className="text-xs text-charcoal-500 font-sans">
                       Target: {selectedVendorForEmail.name} &bull; {selectedVendorForEmail.contactName}
@@ -527,34 +543,40 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
                 </button>
               </div>
 
-              {/* AI Rephraser Tone Chips */}
-              <div className="mt-4 p-3 bg-cream-50 border border-atelier-border rounded-md space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal-700">
-                  <Sparkles className="w-3.5 h-3.5 text-ochre" />
-                  <span>AI Tone Tailor</span>
+              {/* 3 Quick-Select Tone Presets */}
+              <div className="mt-4 p-3.5 bg-cream-50 border border-atelier-border rounded-md space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-charcoal-800 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-ochre" />
+                    <span>Quick-Select Tone Preset</span>
+                  </span>
+                  <span className="text-[10px] text-charcoal-500 font-sans uppercase">
+                    3 Curated Modes
+                  </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleAiRephrase('cordial')}
-                    className="px-2.5 py-1 text-xs rounded bg-white border border-atelier-border hover:border-charcoal-400 text-charcoal-700 transition-colors"
-                  >
-                    Curatorial & Warm
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAiRephrase('budget_firm')}
-                    className="px-2.5 py-1 text-xs rounded bg-white border border-atelier-border hover:border-charcoal-400 text-charcoal-700 transition-colors"
-                  >
-                    Budget Negotiation Ceiling
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAiRephrase('urgent')}
-                    className="px-2.5 py-1 text-xs rounded bg-white border border-atelier-border hover:border-charcoal-400 text-charcoal-700 transition-colors"
-                  >
-                    Friday Contract Hold
-                  </button>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'Curatorial', label: 'Curatorial', desc: 'Artisanal partnership' },
+                    { id: 'Budget Cap Negotiation', label: 'Budget Cap Negotiation', desc: 'Strict allocation ceiling' },
+                    { id: 'Contract Deadline', label: 'Contract Deadline', desc: 'Friday hold deadline' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleSwitchTone(preset.id as any)}
+                      className={`px-2.5 py-2 text-xs rounded text-left transition-all border ${
+                        activeTone === preset.id
+                          ? 'bg-forest text-cream-50 border-forest font-semibold shadow-atelier'
+                          : 'bg-white text-charcoal-700 border-atelier-border hover:bg-cream-100'
+                      }`}
+                    >
+                      <p className="font-medium text-[11px] truncate">{preset.label}</p>
+                      <p className={`text-[9px] truncate ${activeTone === preset.id ? 'text-cream-200' : 'text-charcoal-400'}`}>
+                        {preset.desc}
+                      </p>
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -562,7 +584,7 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
               <div className="mt-5 space-y-4">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-600 mb-1">
-                    Subject Line
+                    Generated Subject Line
                   </label>
                   <input
                     type="text"
@@ -574,10 +596,10 @@ export const VendorChecklist: React.FC<VendorChecklistProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-charcoal-600 mb-1">
-                    Email Correspondence Body
+                    Outreach Correspondence Body
                   </label>
                   <textarea
-                    rows={12}
+                    rows={11}
                     value={emailBody}
                     onChange={(e) => setEmailBody(e.target.value)}
                     className="w-full px-3.5 py-3 text-xs border border-atelier-border rounded bg-white leading-relaxed text-charcoal-800 font-sans focus:outline-none focus:border-forest"

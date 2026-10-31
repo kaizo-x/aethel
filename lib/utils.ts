@@ -239,3 +239,4 @@ export function triggerPrintPreview(): void {
   }
 }
 
+export { exportToiCal, generateShareableLink, decodeSharedPlan } from './exportUtils';

@@ -9,9 +9,6 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  TrendingUp,
-  PieChart,
-  HelpCircle,
   Building,
   Sparkles,
   Camera,
@@ -19,6 +16,10 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
+  Heart,
+  Cake,
+  Leaf,
 } from 'lucide-react';
 import { BudgetCategory, BudgetSubItem, EventPlan } from '@/lib/types';
 import { formatCurrency, rebalanceCategoryPercentages } from '@/lib/utils';
@@ -67,7 +68,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
     onUpdateCategories(updated);
   };
 
-  // Slider change handler with real-time rebalancing
+  // Slider change handler with real-time dynamic rebalancing maintaining exact 100% parity
   const handleSliderChange = (categoryId: string, newPercentage: number) => {
     const rebalanced = rebalanceCategoryPercentages(
       event.categories,
@@ -76,6 +77,55 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
       event.totalBudget
     );
     onUpdateCategories(rebalanced);
+  };
+
+  // 1-Click Persona Blueprint Presets
+  const handleApplyPersonaBlueprint = (persona: 'wedding' | 'birthday' | 'community') => {
+    let presetBreakdown: { name: string; percentage: number; color: string; icon: string }[] = [];
+
+    if (persona === 'wedding') {
+      presetBreakdown = [
+        { name: 'Venue & Catering', percentage: 45, color: '#1B3B36', icon: 'Building' },
+        { name: 'Decor & Ambience', percentage: 20, color: '#C89047', icon: 'Sparkles' },
+        { name: 'Media & Sound', percentage: 15, color: '#3D3B39', icon: 'Camera' },
+        { name: 'Apparel & Styling', percentage: 10, color: '#575553', icon: 'ShieldCheck' },
+        { name: 'Contingency', percentage: 10, color: '#757270', icon: 'Sliders' },
+      ];
+    } else if (persona === 'birthday') {
+      presetBreakdown = [
+        { name: 'Catering & Bar', percentage: 35, color: '#1B3B36', icon: 'Building' },
+        { name: 'Decor & Ambience', percentage: 25, color: '#C89047', icon: 'Sparkles' },
+        { name: 'Entertainment / DJ', percentage: 25, color: '#3D3B39', icon: 'Camera' },
+        { name: 'Contingency', percentage: 15, color: '#757270', icon: 'Sliders' },
+      ];
+    } else {
+      presetBreakdown = [
+        { name: 'AV, Stage & Sound', percentage: 30, color: '#1B3B36', icon: 'Camera' },
+        { name: 'Marketing, Signage & Flyers', percentage: 25, color: '#C89047', icon: 'Sparkles' },
+        { name: 'Permits & Municipal Security', percentage: 25, color: '#575553', icon: 'ShieldCheck' },
+        { name: 'Refreshments & Volunteer Ops', percentage: 20, color: '#757270', icon: 'Building' },
+      ];
+    }
+
+    const updatedCategories: BudgetCategory[] = presetBreakdown.map((p, idx) => {
+      // Find matching existing category or create
+      const existing = event.categories.find((c) =>
+        c.name.toLowerCase().includes(p.name.slice(0, 5).toLowerCase())
+      );
+
+      return {
+        id: existing?.id || `cat-blueprint-${Date.now()}-${idx}`,
+        name: p.name,
+        percentage: p.percentage,
+        allocated: Math.round((p.percentage / 100) * event.totalBudget),
+        locked: p.name.toLowerCase().includes('contingency'),
+        color: p.color,
+        iconName: p.icon,
+        items: existing?.items || [],
+      };
+    });
+
+    onUpdateCategories(updatedCategories);
   };
 
   // Add Item to Category
@@ -149,7 +199,6 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
     const parsed = parseFloat(budgetValueInput);
     if (!isNaN(parsed) && parsed > 0) {
       onUpdateTotalBudget(parsed);
-      // Recalculate category allocated values
       const updated = event.categories.map((cat) => ({
         ...cat,
         allocated: Math.round((cat.percentage / 100) * parsed),
@@ -187,19 +236,22 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
                 Financial Blueprint
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-forest" />
+              <span className="px-2 py-0.5 text-[10px] font-sans font-semibold bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
+                100% Parity Engine
+              </span>
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-medium text-charcoal-900 tracking-tight mt-1">
               Dynamic Budget Allocation & Rebalancing
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-600 mt-1 max-w-2xl font-sans">
-              Drag any slider to proportionally redistribute budget to other unlocked categories in real-time. Lock categories like Contingency to protect fixed deposits.
+              Drag any slider to proportionally redistribute budget to other unlocked categories in real-time. Lock categories to protect fixed deposits.
             </p>
           </div>
 
           {/* Master Budget Box */}
           <div className="bg-cream-100 p-4 rounded-lg border border-atelier-border min-w-[260px] flex flex-col justify-between">
             <span className="text-[11px] font-sans font-semibold uppercase tracking-wider text-charcoal-500">
-              Total Event Budget
+              Total Planned Budget
             </span>
 
             {editingBudget ? (
@@ -245,6 +297,44 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
           </div>
         </div>
 
+        {/* Persona Financial Presets Quick Selector */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-b border-atelier-border pb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-sans font-semibold uppercase tracking-wider text-charcoal-500">
+              Persona Rules:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleApplyPersonaBlueprint('wedding')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded bg-cream-100 hover:bg-cream-200 border border-atelier-border text-charcoal-800 transition-colors"
+            >
+              <Heart className="w-3 h-3 text-rose-700" />
+              <span>Wedding (45/20/15/10/10)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPersonaBlueprint('birthday')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded bg-cream-100 hover:bg-cream-200 border border-atelier-border text-charcoal-800 transition-colors"
+            >
+              <Cake className="w-3 h-3 text-ochre" />
+              <span>Soirée (35/25/25/15)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPersonaBlueprint('community')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded bg-cream-100 hover:bg-cream-200 border border-atelier-border text-charcoal-800 transition-colors"
+            >
+              <Leaf className="w-3 h-3 text-emerald-700" />
+              <span>Civic Drive (30/25/25/20)</span>
+            </button>
+          </div>
+
+          <div className="text-xs text-charcoal-500 flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-forest" />
+            <span>Exact 100% parity maintained on slider change</span>
+          </div>
+        </div>
+
         {/* Live Over/Under Warning Bar */}
         {(isOverBudget || isAllocationSkewed) && (
           <div className="mt-4 p-3 rounded bg-amber-50 border border-amber-200 flex items-center gap-3 text-xs text-amber-900">
@@ -268,7 +358,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
         <div className="mt-6">
           <div className="flex items-center justify-between text-xs text-charcoal-500 mb-2">
             <span className="font-sans uppercase tracking-wider text-[11px] font-medium">Proportional Allocation Spectrum</span>
-            <span className="font-medium">{totalPercentage}% Allocated</span>
+            <span className="font-medium text-forest font-semibold">{totalPercentage}% Allocated (Exact Parity)</span>
           </div>
 
           <div className="h-4 w-full flex rounded-md overflow-hidden bg-cream-300 p-0.5 border border-atelier-border">
@@ -300,6 +390,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
                 />
                 <span className="truncate max-w-[140px]">{cat.name}</span>
                 <span className="text-[11px] font-semibold text-charcoal-400">({cat.percentage}%)</span>
+                {cat.locked && <Lock className="w-2.5 h-2.5 text-charcoal-400" />}
               </button>
             ))}
           </div>
@@ -335,13 +426,13 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
                           {cat.name}
                         </h3>
                         {cat.locked && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase font-sans font-semibold bg-charcoal-100 text-charcoal-700 rounded-full">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase font-sans font-semibold bg-charcoal-100 text-charcoal-700 rounded-full border border-charcoal-200">
                             <Lock className="w-2.5 h-2.5" /> Locked
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-charcoal-500 font-sans mt-0.5">
-                        {cat.items.length} itemized lines &bull; Actual: {formatCurrency(catActualSpent)}
+                        {cat.items.length} line items &bull; Actual Spent: {formatCurrency(catActualSpent)}
                       </p>
                     </div>
                   </div>
@@ -385,8 +476,8 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
                 {/* Slider Control */}
                 <div className="space-y-1.5 pt-2">
                   <div className="flex justify-between text-xs text-charcoal-500">
-                    <span>Rebalance Slider</span>
-                    <span className="font-medium">{cat.percentage}%</span>
+                    <span className="font-medium">Parity Rebalancing Slider</span>
+                    <span className="font-bold text-forest">{cat.percentage}%</span>
                   </div>
                   <input
                     type="range"
@@ -397,9 +488,13 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({
                     onChange={(e) => handleSliderChange(cat.id, parseInt(e.target.value, 10))}
                     className={`w-full ${cat.locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                   />
-                  {cat.locked && (
+                  {cat.locked ? (
                     <p className="text-[10px] text-charcoal-400 italic">
-                      Category is locked. Unlock to slide and redistribute to others.
+                      Category is locked. Unlocking allows dynamic scaling when adjusting other categories.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-charcoal-400 font-sans">
+                      Adjusting this slider dynamically scales unlocked categories to guarantee 100% total allocation.
                     </p>
                   )}
                 </div>

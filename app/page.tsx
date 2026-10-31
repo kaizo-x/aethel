@@ -8,9 +8,10 @@ import {
   Users,
   Compass,
   Sparkles,
-  Printer,
-  FileJson,
-  Plus,
+  Heart,
+  Cake,
+  Leaf,
+  Check,
 } from 'lucide-react';
 import {
   EventPlan,
@@ -27,24 +28,49 @@ import { OverviewDashboard } from '@/components/OverviewDashboard';
 import { BudgetCalculator } from '@/components/BudgetCalculator';
 import { TimelineBoard } from '@/components/TimelineBoard';
 import { VendorChecklist } from '@/components/VendorChecklist';
+import { PersonaFeatures } from '@/components/PersonaFeatures';
 import { EventWizardModal } from '@/components/EventWizardModal';
 import { AiCoPilotDrawer } from '@/components/AiCoPilotDrawer';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { decodeSharedPlan } from '@/lib/exportUtils';
 
 export default function AtelierPage() {
   const [allEvents, setAllEvents] = useState<EventPlan[]>(INITIAL_PRESETS);
   const [currentEventId, setCurrentEventId] = useState<string>(INITIAL_WEDDING.id);
-  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'timeline' | 'vendors'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'timeline' | 'vendors' | 'persona'>('overview');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [sharedToast, setSharedToast] = useState<string | null>(null);
 
-  // Hydrate from localStorage on client mount
+  // Hydrate from URL (?plan=...) or localStorage on client mount
   useEffect(() => {
     setIsMounted(true);
+
+    // 1. Check for Base64 shared plan in URL
+    if (typeof window !== 'undefined') {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const planParam = urlParams.get('plan');
+        if (planParam) {
+          const sharedPlan = decodeSharedPlan(planParam);
+          if (sharedPlan) {
+            setAllEvents((prev) => [sharedPlan, ...prev.filter((e) => e.id !== sharedPlan.id)]);
+            setCurrentEventId(sharedPlan.id);
+            setSharedToast(`Imported shared manifest: "${sharedPlan.title}"`);
+            setTimeout(() => setSharedToast(null), 4000);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not parse shared plan param:', err);
+      }
+    }
+
+    // 2. Hydrate from localStorage
     try {
-      const storedEvents = localStorage.getItem('aethel_events_v2');
-      const storedActiveId = localStorage.getItem('aethel_active_event_id_v2');
+      const storedEvents = localStorage.getItem('aethel_events_v3');
+      const storedActiveId = localStorage.getItem('aethel_active_event_id_v3');
 
       if (storedEvents) {
         const parsed = JSON.parse(storedEvents) as EventPlan[];
@@ -67,8 +93,8 @@ export default function AtelierPage() {
   useEffect(() => {
     if (!isMounted) return;
     try {
-      localStorage.setItem('aethel_events_v2', JSON.stringify(allEvents));
-      localStorage.setItem('aethel_active_event_id_v2', currentEventId);
+      localStorage.setItem('aethel_events_v3', JSON.stringify(allEvents));
+      localStorage.setItem('aethel_active_event_id_v3', currentEventId);
     } catch (e) {
       console.warn('Could not save to localStorage', e);
     }
@@ -90,7 +116,6 @@ export default function AtelierPage() {
   };
 
   const handleLoadPreset = (presetId: string) => {
-    // If already in list, select it; otherwise find in defaults and append
     const exists = allEvents.find((e) => e.id === presetId);
     if (exists) {
       setCurrentEventId(exists.id);
@@ -177,6 +202,16 @@ export default function AtelierPage() {
     }));
   };
 
+  // Dynamic persona tab configuration based on current event type
+  const personaTabInfo =
+    currentEvent.eventType === 'wedding'
+      ? { id: 'persona', label: 'Wedding Suite', icon: Heart }
+      : currentEvent.eventType === 'birthday'
+      ? { id: 'persona', label: 'Soirée Lounge', icon: Cake }
+      : { id: 'persona', label: 'Civic Ops Hub', icon: Leaf };
+
+  const PersonaIcon = personaTabInfo.icon;
+
   return (
     <div className="min-h-screen bg-cream-100 flex flex-col selection:bg-forest selection:text-cream-50">
       
@@ -192,33 +227,50 @@ export default function AtelierPage() {
           onLoadPreset={handleLoadPreset}
         />
 
+        {/* Shared Plan Toast Banner */}
+        {sharedToast && (
+          <div className="bg-emerald-800 text-cream-50 text-xs px-4 py-2 text-center flex items-center justify-center gap-2 animate-in fade-in">
+            <Check className="w-4 h-4 text-emerald-300" />
+            <span className="font-medium">{sharedToast}</span>
+          </div>
+        )}
+
         {/* Editorial Sub-Navigation Bar */}
         <div className="bg-white border-b border-atelier-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
               
-              <nav className="flex space-x-1 sm:space-x-8 overflow-x-auto py-1">
-                {[
-                  { id: 'overview', label: 'Overview & Moodboard', icon: LayoutDashboard },
-                  { id: 'budget', label: 'Budget Rebalancer', icon: DollarSign },
-                  { id: 'timeline', label: 'Cadence & Timeline', icon: Calendar },
-                  { id: 'vendors', label: 'Vendor Directory', icon: Users },
-                ].map((tab) => {
+              <nav className="flex space-x-1 sm:space-x-6 overflow-x-auto py-1">
+                {([
+                  { id: 'overview', label: 'Overview & Moodboard', icon: LayoutDashboard, highlight: false },
+                  { id: 'persona', label: personaTabInfo.label, icon: PersonaIcon, highlight: true },
+                  { id: 'budget', label: 'Budget Rebalancer', icon: DollarSign, highlight: false },
+                  { id: 'timeline', label: 'Cadence & Timeline', icon: Calendar, highlight: false },
+                  { id: 'vendors', label: 'Vendor Directory', icon: Users, highlight: false },
+                ] as Array<{
+                  id: 'overview' | 'budget' | 'timeline' | 'vendors' | 'persona';
+                  label: string;
+                  icon: React.ComponentType<{ className?: string }>;
+                  highlight: boolean;
+                }>).map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
 
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`inline-flex items-center gap-2 py-3 px-3 sm:px-1 border-b-2 text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`inline-flex items-center gap-2 py-3 px-3 sm:px-1.5 border-b-2 text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
                         isActive
                           ? 'border-forest text-forest font-semibold'
                           : 'border-transparent text-charcoal-500 hover:text-charcoal-800 hover:border-charcoal-300'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className={`w-4 h-4 ${tab.highlight && !isActive ? 'text-forest' : ''}`} />
                       <span>{tab.label}</span>
+                      {tab.highlight && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-forest hidden sm:inline-block" />
+                      )}
                     </button>
                   );
                 })}
@@ -322,6 +374,14 @@ export default function AtelierPage() {
             />
           )}
 
+          {activeTab === 'persona' && (
+            <PersonaFeatures
+              event={currentEvent}
+              onUpdateEvent={updateCurrentEvent}
+              onAddTimelineTask={handleAddTaskFromAi}
+            />
+          )}
+
           {activeTab === 'budget' && (
             <BudgetCalculator
               event={currentEvent}
@@ -352,10 +412,10 @@ export default function AtelierPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-serif font-bold text-sm text-charcoal-900">Aethel</span>
-            <span>&bull; AI Event Planning Atelier</span>
+            <span>&bull; AI Event Operating System</span>
           </div>
           <p className="text-charcoal-400 text-[11px]">
-            Designed for tactile curation, real-time fiscal balance & reverse cadence execution.
+            Engineered for weddings, milestone soirées & civic drives &bull; 100% budget parity &bull; Google Gemini engine.
           </p>
           <div className="flex items-center gap-4 text-charcoal-600">
             <button

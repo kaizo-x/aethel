@@ -139,149 +139,224 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
       .map((c) => c.trim())
       .filter((c) => c.length > 0);
 
-    // Dynamic category allocation percentages based on strategy
-    let pVenue = 45;
-    let pDecor = 22;
-    let pMedia = 15;
-    let pLogistics = 10;
-    let pContingency = 8;
+    let categories: BudgetCategory[] = [];
+    let weddingDetails: EventPlan['weddingDetails'];
+    let birthdayDetails: EventPlan['birthdayDetails'];
+    let communityDetails: EventPlan['communityDetails'];
 
-    if (allocationStrategy === 'venue_heavy') {
-      pVenue = 55;
-      pDecor = 18;
-      pMedia = 12;
-      pLogistics = 8;
-      pContingency = 7;
-    } else if (allocationStrategy === 'decor_heavy') {
-      pVenue = 35;
-      pDecor = 32;
-      pMedia = 15;
-      pLogistics = 10;
-      pContingency = 8;
-    } else if (allocationStrategy === 'civic') {
-      pVenue = 30;
-      pDecor = 30;
-      pMedia = 15;
-      pLogistics = 18;
-      pContingency = 7;
+    if (eventType === 'wedding') {
+      categories = [
+        {
+          id: 'cat-w-venue',
+          name: 'Venue & Catering',
+          percentage: 45,
+          allocated: Math.round(0.45 * totalBudget),
+          color: '#1B3B36',
+          iconName: 'Building',
+          items: [
+            { id: 'it-w-1', name: 'Estate Lawn & Grounds Reservation', estimated: Math.round(0.25 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-w-2', name: `Farm-to-Table Seasonal Dinner (${guestCount}p)`, estimated: Math.round(0.20 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-w-decor',
+          name: 'Decor & Ambience',
+          percentage: 20,
+          allocated: Math.round(0.20 * totalBudget),
+          color: '#C89047',
+          iconName: 'Sparkles',
+          items: [
+            { id: 'it-w-3', name: 'Foam-Free Botanical Installations', estimated: Math.round(0.12 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-w-4', name: 'Heirloom Linen & Beeswax Candles', estimated: Math.round(0.08 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-w-media',
+          name: 'Media & Sound',
+          percentage: 15,
+          allocated: Math.round(0.15 * totalBudget),
+          color: '#3D3B39',
+          iconName: 'Camera',
+          items: [
+            { id: 'it-w-5', name: '35mm Film & Digital Photography', estimated: Math.round(0.10 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-w-6', name: 'Acoustic Chamber Strings & Vinyl DJ', estimated: Math.round(0.05 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-w-apparel',
+          name: 'Apparel & Styling',
+          percentage: 10,
+          allocated: Math.round(0.10 * totalBudget),
+          color: '#575553',
+          iconName: 'ShieldCheck',
+          items: [
+            { id: 'it-w-7', name: 'Ceremonial Attire & Botanical Hair/Makeup', estimated: Math.round(0.10 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-w-contingency',
+          name: 'Contingency',
+          percentage: 10,
+          allocated: Math.round(0.10 * totalBudget),
+          locked: true,
+          color: '#757270',
+          iconName: 'Sliders',
+          items: [
+            { id: 'it-w-8', name: 'Weather Retractable Awning & Incidentals', estimated: Math.round(0.10 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+      ];
+
+      weddingDetails = {
+        tables: [
+          { id: 'tbl-w-1', name: 'Head Table — Mountain View', shape: 'head', capacity: 10, assignedGuests: ['Host & Partner', 'Maid of Honor', 'Best Man'] },
+          { id: 'tbl-w-2', name: 'Table 1 — Olive Pergola', shape: 'round', capacity: 8, assignedGuests: [] },
+          { id: 'tbl-w-3', name: 'Table 2 — Courtyard Arbor', shape: 'round', capacity: 8, assignedGuests: [] },
+        ],
+        bridalParty: [
+          { id: 'bp-w-1', role: 'Attendants', milestone: 'Botanical Hair & Natural Makeup Call', time: '10:00 AM', completed: false, location: 'Bridal Suite' },
+          { id: 'bp-w-2', role: 'All', milestone: 'First Look & 35mm Analog Portraiture', time: '03:00 PM', completed: false, location: 'Olive Grove' },
+          { id: 'bp-w-3', role: 'Full Party', milestone: 'Ceremonial Processional Lineup', time: '05:00 PM', completed: false, location: 'Altar Steps' },
+        ],
+        rsvps: [
+          { id: 'g-w-1', name: 'Lead Host', status: 'confirmed', dietary: 'None', tableId: 'tbl-w-1' },
+          { id: 'g-w-2', name: 'Partner Host', status: 'confirmed', dietary: 'None', tableId: 'tbl-w-1' },
+          { id: 'g-w-3', name: 'Maid of Honor', status: 'confirmed', dietary: 'Vegan', tableId: 'tbl-w-1' },
+        ],
+      };
+    } else if (eventType === 'birthday') {
+      categories = [
+        {
+          id: 'cat-b-catering',
+          name: 'Catering & Bar',
+          percentage: 35,
+          allocated: Math.round(0.35 * totalBudget),
+          color: '#1B3B36',
+          iconName: 'Building',
+          items: [
+            { id: 'it-b-1', name: 'Oyster Shucking & Seasonal Grazing Table', estimated: Math.round(0.20 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-b-2', name: 'Natural Champagne & Craft Mezcal Bar', estimated: Math.round(0.15 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-b-decor',
+          name: 'Decor & Ambience',
+          percentage: 25,
+          allocated: Math.round(0.25 * totalBudget),
+          color: '#C89047',
+          iconName: 'Sparkles',
+          items: [
+            { id: 'it-b-3', name: 'Vintage French Coupe Tower & Glassware', estimated: Math.round(0.15 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-b-4', name: 'Architectural Monochromatic Florals', estimated: Math.round(0.10 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-b-entertainment',
+          name: 'Entertainment / DJ',
+          percentage: 25,
+          allocated: Math.round(0.25 * totalBudget),
+          color: '#3D3B39',
+          iconName: 'Camera',
+          items: [
+            { id: 'it-b-5', name: 'Vintage Vinyl Selector & Sound Setup', estimated: Math.round(0.18 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-b-6', name: 'Point-and-Shoot Guest Camera Station', estimated: Math.round(0.07 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-b-contingency',
+          name: 'Contingency',
+          percentage: 15,
+          allocated: Math.round(0.15 * totalBudget),
+          locked: true,
+          color: '#757270',
+          iconName: 'Sliders',
+          items: [
+            { id: 'it-b-7', name: 'Breakage Reserve & Elevator Operator Fee', estimated: Math.round(0.15 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+      ];
+
+      birthdayDetails = {
+        itinerary: [
+          { id: 'it-b-1', time: '06:00 PM', title: 'Doors Open & Botanical Spritz Welcome', vibeTag: 'Warm Mellow', completed: false },
+          { id: 'it-b-2', time: '08:30 PM', title: 'Champagne Coupe Tower Pour & Birthday Toast', vibeTag: 'Golden Peak', completed: false },
+          { id: 'it-b-3', time: '09:15 PM', title: 'DJ Peak Vinyl Set & Terrace Dancefloor', vibeTag: 'High Voltage', completed: false },
+        ],
+        tracks: [
+          { id: 'tr-b-1', title: 'Águas de Março', artist: 'Stan Getz & João Gilberto', genre: 'Bossa Nova Vinyl', bpm: 88, duration: '3:32', energy: 'low', upvotes: 5 },
+          { id: 'tr-b-2', title: 'Music Sounds Better With You', artist: 'Stardust', genre: 'French Touch / Disco', bpm: 124, duration: '4:21', energy: 'high', upvotes: 8 },
+        ],
+        wishlist: [
+          { id: 'wl-b-1', title: 'Vintage Crystal Champagne Coupes (Set of 6)', category: 'Barware', priceEstimate: 160, claimed: false },
+        ],
+      };
+    } else {
+      // Community
+      categories = [
+        {
+          id: 'cat-c-av',
+          name: 'AV, Stage & Sound',
+          percentage: 30,
+          allocated: Math.round(0.30 * totalBudget),
+          color: '#1B3B36',
+          iconName: 'Camera',
+          items: [
+            { id: 'it-c-1', name: 'Solar Battery PA System & Wireless Mics', estimated: Math.round(0.20 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-c-2', name: 'Covered Modular Wooden Stage Riser', estimated: Math.round(0.10 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-c-marketing',
+          name: 'Marketing, Signage & Flyers',
+          percentage: 25,
+          allocated: Math.round(0.25 * totalBudget),
+          color: '#C89047',
+          iconName: 'Sparkles',
+          items: [
+            { id: 'it-c-3', name: 'Recycled Kraft Flyers & Street Wayfinding', estimated: Math.round(0.25 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-c-permits',
+          name: 'Permits & Municipal Security',
+          percentage: 25,
+          allocated: Math.round(0.25 * totalBudget),
+          color: '#575553',
+          iconName: 'ShieldCheck',
+          items: [
+            { id: 'it-c-4', name: 'Parks & Rec Public Assembly Permit', estimated: Math.round(0.15 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-c-5', name: 'Noise Decibel Exemption & Security Cover', estimated: Math.round(0.10 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+        {
+          id: 'cat-c-ops',
+          name: 'Refreshments & Volunteer Ops',
+          percentage: 20,
+          allocated: Math.round(0.20 * totalBudget),
+          locked: true,
+          color: '#757270',
+          iconName: 'Building',
+          items: [
+            { id: 'it-c-6', name: 'Community Soup Urns & Sourdough Lunch', estimated: Math.round(0.12 * totalBudget), actual: 0, status: 'planned' },
+            { id: 'it-c-7', name: 'Hydration Stations & First Aid Bio-Safety Kit', estimated: Math.round(0.08 * totalBudget), actual: 0, status: 'planned' },
+          ],
+        },
+      ];
+
+      communityDetails = {
+        permits: [
+          { id: 'pm-c-1', permitName: 'Municipal Parks Public Gathering Permit', authority: 'City Parks Dept', status: 'approved', notes: 'Displayed at volunteer check-in.' },
+          { id: 'pm-c-2', permitName: 'Acoustic Amplification Decibel Exemption', authority: 'Code Enforcement', status: 'in_review', notes: 'Valid until 04:00 PM.' },
+        ],
+        shifts: [
+          { id: 'sh-c-1', shiftName: 'Shift 1: Morning Load-In & Site Staking', timeWindow: '08:00 AM - 11:00 AM', capacity: 30, filled: 28, leadName: 'Lead Coordinator', tasksSummary: 'Site setup and tool distribution.' },
+          { id: 'sh-c-2', shiftName: 'Shift 2: Operations & Volunteer Lunch', timeWindow: '11:00 AM - 02:00 PM', capacity: 40, filled: 38, leadName: 'Hospitality Lead', tasksSummary: 'Community engagement and food.' },
+        ],
+        emergencyMatrix: [
+          { id: 'em-c-1', hazard: 'High Solar Exposure & Dehydration', probability: 'High', impact: 'Moderate', mitigationProtocol: 'Two shaded hydration tents with water kegs.', emergencyActionStep: 'Escort to shaded rest area; give electrolytes.' },
+        ],
+      };
     }
-
-    const categories: BudgetCategory[] = [
-      {
-        id: 'cat-w-venue',
-        name: 'Venue & Catering',
-        percentage: pVenue,
-        allocated: Math.round((pVenue / 100) * totalBudget),
-        color: '#1B3B36',
-        iconName: 'Building',
-        items: [
-          {
-            id: 'it-w-1',
-            name: `${title || 'Primary'} Venue Hire Fee`,
-            estimated: Math.round((pVenue * 0.55 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-          {
-            id: 'it-w-2',
-            name: `Seasonal Hospitality & Provisions (${guestCount} guests)`,
-            estimated: Math.round((pVenue * 0.45 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-        ],
-      },
-      {
-        id: 'cat-w-decor',
-        name: 'Decor & Ambience',
-        percentage: pDecor,
-        allocated: Math.round((pDecor / 100) * totalBudget),
-        color: '#C89047',
-        iconName: 'Sparkles',
-        items: [
-          {
-            id: 'it-w-3',
-            name: 'Botanical Styling & Architectural Installations',
-            estimated: Math.round((pDecor * 0.65 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-          {
-            id: 'it-w-4',
-            name: 'Linen Runners, Handmade Ceramics & Candlelight',
-            estimated: Math.round((pDecor * 0.35 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-        ],
-      },
-      {
-        id: 'cat-w-media',
-        name: 'Media & Sound',
-        percentage: pMedia,
-        allocated: Math.round((pMedia / 100) * totalBudget),
-        color: '#3D3B39',
-        iconName: 'Camera',
-        items: [
-          {
-            id: 'it-w-5',
-            name: 'Editorial Documentary Photography Coverage',
-            estimated: Math.round((pMedia * 0.7 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-          {
-            id: 'it-w-6',
-            name: 'Acoustic Sound Equipment & Atmosphere Musician',
-            estimated: Math.round((pMedia * 0.3 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-        ],
-      },
-      {
-        id: 'cat-w-logistics',
-        name: 'Logistics/Permits',
-        percentage: pLogistics,
-        allocated: Math.round((pLogistics / 100) * totalBudget),
-        color: '#575553',
-        iconName: 'ShieldCheck',
-        items: [
-          {
-            id: 'it-w-7',
-            name: 'Municipal Permits & Comprehensive Liability Cover',
-            estimated: Math.round((pLogistics * 0.4 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-          {
-            id: 'it-w-8',
-            name: 'Guest Shuttles & Zero-Waste Sanitation Services',
-            estimated: Math.round((pLogistics * 0.6 / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-        ],
-      },
-      {
-        id: 'cat-w-contingency',
-        name: 'Contingency',
-        percentage: pContingency,
-        allocated: Math.round((pContingency / 100) * totalBudget),
-        locked: true,
-        color: '#757270',
-        iconName: 'Sliders',
-        items: [
-          {
-            id: 'it-w-9',
-            name: 'Emergency Weather & Tactical Reserve',
-            estimated: Math.round((pContingency / 100) * totalBudget),
-            actual: 0,
-            status: 'planned',
-          },
-        ],
-      },
-    ];
 
     const phases: TimelinePhase[] = [
       { id: 't-6m', label: 'T-6 Months', description: 'Core spatial booking, contracts & vision alignment', order: 1 },
@@ -359,7 +434,7 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
         email: 'events@venue.com',
         phone: '+1 (555) 234-5678',
         status: 'contacted',
-        estimatedCost: Math.round((pVenue * 0.55 / 100) * totalBudget),
+        estimatedCost: Math.round(0.25 * totalBudget),
         actualCost: 0,
         rating: 4.9,
         notes: 'Priority consideration for chosen date.',
@@ -377,7 +452,7 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
         email: 'guild@hearthprovisions.com',
         phone: '+1 (555) 890-1234',
         status: 'to_source',
-        estimatedCost: Math.round((pVenue * 0.45 / 100) * totalBudget),
+        estimatedCost: Math.round(0.20 * totalBudget),
         actualCost: 0,
         rating: 5.0,
         inquiryTemplate: {
@@ -459,6 +534,9 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
           'Belgian unbleached linen runners',
         ],
       },
+      weddingDetails,
+      birthdayDetails,
+      communityDetails,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
