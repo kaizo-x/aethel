@@ -328,6 +328,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
           </h3>
           <button
             onClick={() => onNavigateTab('budget')}
+            aria-label="Open budget rebalancer"
             className="text-xs text-forest hover:underline font-medium flex items-center gap-1"
           >
             <span>Open Budget Rebalancer</span>
@@ -423,6 +424,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         {/* Persona Suite Card */}
         <button
           onClick={() => onNavigateTab('persona')}
+          aria-label={`Open ${personaBadge.title}`}
           className="text-left bg-forest/5 hover:bg-forest/10 border border-forest/30 hover:border-forest p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
@@ -440,6 +442,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
         <button
           onClick={() => onNavigateTab('budget')}
+          aria-label="Open budget rebalancer"
           className="text-left bg-cream-50 hover:bg-white border border-atelier-border hover:border-charcoal-400 p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
@@ -454,6 +457,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
         <button
           onClick={() => onNavigateTab('timeline')}
+          aria-label="Open production cadence timeline"
           className="text-left bg-cream-50 hover:bg-white border border-atelier-border hover:border-charcoal-400 p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
@@ -468,6 +472,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
         <button
           onClick={() => onNavigateTab('vendors')}
+          aria-label="Open vendor directory"
           className="text-left bg-cream-50 hover:bg-white border border-atelier-border hover:border-charcoal-400 p-5 rounded-lg transition-all group shadow-atelier"
         >
           <div className="flex items-center justify-between mb-2">
@@ -501,6 +506,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             {onAddMoodboardItem && (
               <button
                 onClick={() => setIsAddingImage(!isAddingImage)}
+                aria-label="Add moodboard inspiration"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-cream-100 hover:bg-cream-200 text-charcoal-800 border border-atelier-border transition-colors"
               >
                 <Plus className="w-3.5 h-3.5 text-forest" />
@@ -540,12 +546,14 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
               <button
                 type="button"
                 onClick={() => setIsAddingImage(false)}
+                aria-label="Cancel adding inspiration"
                 className="px-3 py-1 text-xs text-charcoal-600 hover:text-charcoal-900"
               >
                 Cancel
               </button>
               <button
                 type="submit"
+                aria-label="Pin inspiration to moodboard"
                 className="px-3 py-1 text-xs font-semibold bg-forest text-cream-50 rounded hover:bg-forest-light"
               >
                 Pin to Board

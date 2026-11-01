@@ -23,6 +23,7 @@ import {
   PersonalizedIdeas,
 } from '@/lib/types';
 import { INITIAL_PRESETS, INITIAL_WEDDING, INITIAL_BIRTHDAY, INITIAL_COMMUNITY } from '@/lib/initialData';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Header } from '@/components/Header';
 import { OverviewDashboard } from '@/components/OverviewDashboard';
 import { BudgetCalculator } from '@/components/BudgetCalculator';
@@ -213,7 +214,8 @@ export default function AtelierPage() {
   const PersonaIcon = personaTabInfo.icon;
 
   return (
-    <div className="min-h-screen bg-cream-100 flex flex-col selection:bg-forest selection:text-cream-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-cream-100 flex flex-col selection:bg-forest selection:text-cream-50">
       
       {/* Sticky Main Header */}
       <div className="no-print">
@@ -450,6 +452,7 @@ export default function AtelierPage() {
         onAddTask={handleAddTaskFromAi}
       />
 
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

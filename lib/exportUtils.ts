@@ -155,8 +155,8 @@ export function generateShareableLink(eventData: EventPlan): string {
     const jsonStr = JSON.stringify(eventData);
     // Safe UTF-8 to Base64 encode
     const base64 = btoa(
-      encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-        String.fromCharCode(parseInt(p1, 16))
+      encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, (_match: string, hex: string) =>
+        String.fromCharCode(parseInt(hex, 16))
       )
     );
 
@@ -181,13 +181,12 @@ export function generateShareableLink(eventData: EventPlan): string {
  */
 export function decodeSharedPlan(base64String: string): EventPlan | null {
   try {
-    const jsonStr = decodeURIComponent(
-      Array.prototype.map
-        .call(atob(base64String), (c: string) => {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join('')
-    );
+    const binary = atob(base64String);
+    let encoded = '';
+    for (let i = 0; i < binary.length; i += 1) {
+      encoded += '%' + ('00' + binary.charCodeAt(i).toString(16)).slice(-2);
+    }
+    const jsonStr = decodeURIComponent(encoded);
 
     const parsed = JSON.parse(jsonStr) as EventPlan;
     if (parsed && parsed.title && Array.isArray(parsed.categories)) {

@@ -278,6 +278,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
 
           <button
             onClick={onClose}
+            aria-label="Close AI Co-Pilot drawer"
             className="p-2 rounded-full hover:bg-cream-200 text-charcoal-400 hover:text-charcoal-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -343,6 +344,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
                                 type="button"
                                 disabled={isApplied}
                                 onClick={() => handleApplyAction(sugg, actionKey)}
+                                aria-label={sugg.actionLabel || 'Apply recommendation'}
                                 className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded transition-colors ${
                                   isApplied
                                     ? 'bg-emerald-100 text-emerald-800 cursor-default'
@@ -406,6 +408,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
                 key={idx}
                 type="button"
                 onClick={() => handleSendMessage(preset)}
+                aria-label={`Use quick scenario: ${preset}`}
                 className="px-2.5 py-1 text-[11px] rounded bg-white hover:bg-cream-200 text-charcoal-700 border border-atelier-border transition-colors flex-shrink-0 max-w-xs truncate"
                 title={preset}
               >
@@ -434,6 +437,7 @@ export const AiCoPilotDrawer: React.FC<AiCoPilotDrawerProps> = ({
             <button
               type="submit"
               disabled={!inputPrompt.trim() || isThinking}
+              aria-label="Send message to AI Co-Pilot"
               className="p-2.5 bg-forest hover:bg-forest-light text-cream-50 rounded-md transition-colors disabled:opacity-40"
             >
               <Send className="w-4 h-4" />
